@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  postgres-supplywise:
+    image: postgres:13
+    container_name: postgres-supplywise  
+    environment:
+      POSTGRES_USER: supplywiseuser
+      POSTGRES_PASSWORD: supplywisepassword
+      POSTGRES_DB: supplywise
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  todolist:
+    build:
+      context: .
+      dockerfile: DockerFile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres-supplywise
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-supplywise:5432/supplywise
+      SPRING_DATASOURCE_USERNAME: supplywiseuser
+      SPRING_DATASOURCE_PASSWORD: supplywisepassword
+    networks:
+      - app-network
+
+networks: 
+  app-network:
+
+volumes:
+  postgres_data:
