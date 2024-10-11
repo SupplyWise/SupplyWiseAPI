@@ -1,7 +1,5 @@
 package com.supplywise.supplywise.model;
 
-import org.hibernate.annotations.GenericGenerator;
-
 import jakarta.persistence.*;
 
 import lombok.Getter;   // to automatically generate getter methods for all fields
@@ -14,6 +12,8 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "user")
 public class User{
