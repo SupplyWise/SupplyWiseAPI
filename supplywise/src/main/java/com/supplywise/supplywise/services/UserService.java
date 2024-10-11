@@ -32,7 +32,7 @@ public class UserService{
     }
 
     // update an existing user
-    public Optional<User> updateUser(UUID id, org.apache.catalina.User updatedUser){
+    public Optional<User> updateUser(UUID id, User updatedUser){
         if (!userRepository.existsById(id)) {
             return Optional.empty();
         }
