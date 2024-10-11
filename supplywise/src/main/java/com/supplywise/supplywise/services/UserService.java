@@ -32,14 +32,17 @@ public class UserService{
     }
 
     // update an existing user
-    public Optional<User> updateUser(UUID id, User updatedUser){
+    public Optional<User> updateUser(UUID id, org.apache.catalina.User updatedUser){
         if (!userRepository.existsById(id)) {
             return Optional.empty();
         }
         User existingUser = userRepository.findById(id).get();
 
         existingUser.setUsername(updatedUser.getUsername());
-        existingUser.setPassword(updatedUser.getPassword());
+        if(!updatedUser.getPassword().equals(existingUser.getPassword())){
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+        }
         existingUser.setRole(updatedUser.getRole());
         existingUser.setRestaurant(updatedUser.getRestaurant());
 
