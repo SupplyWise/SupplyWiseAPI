@@ -37,6 +37,17 @@ public class UserController{
         logger.info("User created: {}", createdUser.getUsername());
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
+
+    // update an existing user
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody User user){
+        Optional<User> updatedUserOptional = userService.updateUser(id, user);
+        if(updatedUserOptional.isPresent()){
+            logger.info("User updated: {}", updatedUserOptional.get().getUsername());
+            return new ResponseEntity<>(updatedUserOptional.get(), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
     
     // get user by id
     @GetMapping("/{id}")
