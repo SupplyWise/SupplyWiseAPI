@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   postgres-supplywise:
     image: postgres:13
@@ -14,7 +13,7 @@ services:
     networks:
       - app-network
 
-  todolist:
+  api-supplywise:
     build:
       context: .
       dockerfile: DockerFile
