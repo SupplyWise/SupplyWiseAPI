@@ -3,17 +3,17 @@ package com.supplywise.supplywise.model;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Column;
-import java.util.UUID;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.util.UUID;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "company")
+@Data
+@NoArgsConstructor
 public class Company {
 
     @Id
@@ -21,7 +21,7 @@ public class Company {
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "UUID")
     private UUID id;
 
-    @Column(name = "name", nullable = false, unique = true, length = 255)
+    @Column(name = "name", nullable = false, length = 255)
     private String name;
 
     @CreationTimestamp
@@ -32,43 +32,7 @@ public class Company {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-
-    public Company() {
-    }
-
     public Company(String name) {
         this.name = name;
     }
-
-    public Company(UUID id, String name, LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this.id = id;
-        this.name = name;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
 }
-
