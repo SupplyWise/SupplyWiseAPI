@@ -20,34 +20,43 @@ public class UserService{
     private UserRepository userRepository;
 
     @Autowired
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository){
         this.userRepository = userRepository;
     }
 
     // create a new user
-    public User createUser(User user) {
+    public User createUser(User user){
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
+    // update an existing user
+    public Optional<User> updateUser(UUID id, User updatedUser){
+        if (!userRepository.existsById(id)) {
+            return Optional.empty();
+        }
+        updatedUser.setId(id);
+        return Optional.of(userRepository.save(updatedUser));
+    }
+
     // get user by id
-    public Optional<User> getUserById(UUID id) {
+    public Optional<User> getUserById(UUID id){
         return userRepository.findById(id);
     }
 
     // get user by username
-    public Optional<User> getUserByUsername(String username) {
+    public Optional<User> getUserByUsername(String username){
         return userRepository.findByUsername(username);
     }
 
     // get users by username containing a part of the username
-    public List<User> getUsersByUsernameContaining(String usernamePart) {
+    public List<User> getUsersByUsernameContaining(String usernamePart){
         return userRepository.findByUsernameContaining(usernamePart);
     }
 
     // get users by role
-    public List<User> getUsersByRole(Role role) {
+    public List<User> getUsersByRole(Role role){
         return userRepository.findByRole(role);
     }
 
@@ -57,7 +66,7 @@ public class UserService{
     }
 
     // get users by role and restaurant id
-    public List<User> getUsersByRoleAndRestaurantId(Role role, UUID restaurantId) {
+    public List<User> getUsersByRoleAndRestaurantId(Role role, UUID restaurantId){
         return userRepository.findByRoleAndRestaurantId(role, restaurantId);
     }
 
