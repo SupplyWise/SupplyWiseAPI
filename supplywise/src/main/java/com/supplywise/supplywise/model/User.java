@@ -4,24 +4,20 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-import lombok.Getter;   // to automatically generate getter methods for all fields
-import lombok.Setter;   // to automatically generate setter methods for all fields
-import lombok.NoArgsConstructor; // to automatically generate no-args constructor
-import lombok.AllArgsConstructor;   // to automatically generate all args constructor
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(name = "user")
+@Data
+@NoArgsConstructor
 public class User{
 
     @Id
-    @GeneratedValue()
+    @GeneratedValue
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "UUID")
     private UUID id;
 
@@ -39,7 +35,7 @@ public class User{
     @Column(name = "role", nullable = false)
     private Role role = Role.MANAGER;   // default role is Manager
 
-    @ManyToOne(fetch = FetchType.LAZY)  // to the Restaurant entity not be fetched from the database until it is accessed
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "restaurant_id", nullable = true)
     private Restaurant restaurant;
 
@@ -50,7 +46,6 @@ public class User{
     @Column(name = "updated_at", nullable = false)
     @org.hibernate.annotations.UpdateTimestamp
     private LocalDateTime updatedAt;
-
     
     public User(String username, String password, Role role, Restaurant restaurant){
         this.username = username;
