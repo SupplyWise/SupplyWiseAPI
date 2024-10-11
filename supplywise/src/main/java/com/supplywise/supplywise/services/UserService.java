@@ -36,8 +36,14 @@ public class UserService{
         if (!userRepository.existsById(id)) {
             return Optional.empty();
         }
-        updatedUser.setId(id);
-        return Optional.of(userRepository.save(updatedUser));
+        User existingUser = userRepository.findById(id).get();
+
+        existingUser.setUsername(updatedUser.getUsername());
+        existingUser.setPassword(updatedUser.getPassword());
+        existingUser.setRole(updatedUser.getRole());
+        existingUser.setRestaurant(updatedUser.getRestaurant());
+
+        return Optional.of(userRepository.save(existingUser));
     }
 
     // get user by id
