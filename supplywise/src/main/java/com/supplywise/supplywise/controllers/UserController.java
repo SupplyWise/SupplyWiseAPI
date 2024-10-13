@@ -117,7 +117,7 @@ public class UserController{
     }
 
     // confirm if user exists by its id
-    @GetMapping("/exists/id/{id}")
+    @GetMapping("/exists/{id}")
     public ResponseEntity<Boolean> existsById(@PathVariable UUID id){
         boolean exists = userService.existsById(id);
         return new ResponseEntity<>(exists, HttpStatus.OK);
