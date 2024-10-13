@@ -4,5 +4,6 @@ public enum Role{
     ADMIN,
     FRANCHISE_OWNER,
     MANAGER_MASTER,
-    MANAGER
+    MANAGER,
+    DISASSOCIATED
 }
