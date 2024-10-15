@@ -16,39 +16,47 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UserService{
+public class UserService {
+
+    private int MIN_FULLNAME_LENGTH = 5;
+    private int MAX_FULLNAME_LENGTH = 255;
+    private int MIN_EMAIL_LENGTH = 5;
+    private int MAX_EMAIL_LENGTH = 100;
+    private int MIN_PASSWORD_LENGTH = 8;
+    private int MAX_PASSWORD_LENGTH = 80;
+    private String EMAIL_REGEX = "[a-z][a-z0-9._+-]+@[a-z]+\\.[a-z]{2,6}";
 
     private UserRepository userRepository;
 
     @Autowired
-    public UserService(UserRepository userRepository){
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
     // Create a new user
-    public User createUser(User user){
+    public User createUser(User user) {
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
     // Get a user by email (which is unique)
-    public Optional<User> getUserByEmail(String email){
+    public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }
 
     // Check if a user exists by email
-    public boolean userExistsByEmail(String email){
+    public boolean userExistsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
 
     // Update an existing user
-    public Optional<User> updateUser(UUID id, User updatedUser){
+    public Optional<User> updateUser(UUID id, User updatedUser) {
         Optional<User> optionalExistingUser = userRepository.findById(id);
         if (!optionalExistingUser.isPresent()) {
             return Optional.empty();
         }
-        
+
         // Get the existing user's attributes
         User existingUser = optionalExistingUser.get();
         String existingFullname = existingUser.getFullname();
@@ -87,7 +95,7 @@ public class UserService{
     }
 
     // Delete user by their email (which is unique)
-    public void deleteByEmail(String email){
+    public void deleteByEmail(String email) {
         userRepository.deleteByEmail(email);
     }
 
@@ -99,12 +107,44 @@ public class UserService{
     /* Admin methods */
 
     // Get all users by role
-    public List<User> getUsersByRole(Role role){
+    public List<User> getUsersByRole(Role role) {
         return userRepository.findByRole(role);
     }
 
     // Get all users
-    public Page<User> getAllUsers(Pageable pageable){
+    public Page<User> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable);
+    }
+
+    /* Helper functions */
+
+    public boolean isUserValid(User user) {
+        String fullname = user.getFullname();
+        String email = user.getEmail();
+        String password = user.getPassword();
+
+        if (fullname == null || fullname.length() < MIN_FULLNAME_LENGTH || fullname.length() > MAX_FULLNAME_LENGTH) {
+            System.out.println("Fullname is invalid");
+            return false;
+        }
+
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
+            System.out.println("Password is invalid!" + password + " " + password.length());
+            return false;
+        }
+        return isEmailValid(email);
+    }
+
+    public boolean isEmailValid(String email) {
+        if (email == null) {
+            System.out.println("Email is null");
+            return false;
+        }
+        return (email.length() > MIN_EMAIL_LENGTH && email.length() < MAX_EMAIL_LENGTH && email.matches(EMAIL_REGEX));
+    }
+
+    public boolean isPasswordCorrect(String password, String encodedPassword) {
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        return passwordEncoder.matches(password, encodedPassword);
     }
 }
