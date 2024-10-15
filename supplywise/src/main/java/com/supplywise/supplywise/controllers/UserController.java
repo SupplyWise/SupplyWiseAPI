@@ -31,48 +31,14 @@ import org.slf4j.LoggerFactory;
 @Tag(name = "User Controller", description = "API for managing users")
 public class UserController {
 
+    //TODO code 403 forbidden when authentication is further done
+
     private final UserService userService;
     private final Logger logger = LoggerFactory.getLogger(UserController.class);
-
-    private int MIN_FULLNAME_LENGTH = 5;
-    private int MAX_FULLNAME_LENGTH = 255;
-    private int MIN_EMAIL_LENGTH = 5;
-    private int MAX_EMAIL_LENGTH = 100;
-    private int MIN_PASSWORD_LENGTH = 8;
-    private int MAX_PASSWORD_LENGTH = 80;
-    private String EMAIL_REGEX = "[a-z][a-z0-9._+-]+@[a-z]+\\.[a-z]{2,6}";
 
     @Autowired
     public UserController(UserService userService) {
         this.userService = userService;
-    }
-
-    @Operation(summary = "Create a new user", description = "Creates a new user in the system")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "User created successfully", 
-                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid user data"),
-        @ApiResponse(responseCode = "409", description = "User already exists")
-    })
-    @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        logger.info("Attempting to create a new user");
-
-        // Check if the user is valid
-        if (!isUserValid(user)) {
-            logger.error("Invalid user");
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-
-        // Check if the user already exists by its email
-        if (userService.userExistsByEmail(user.getEmail())) {
-            logger.error("User email already exists");
-            return new ResponseEntity<>(HttpStatus.CONFLICT);
-        }
-
-        User createdUser = userService.createUser(user);
-        logger.info("User created successfully");
-        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
 
     @Operation(summary = "Get user by email", description = "Retrieve a user by their email address")
@@ -85,7 +51,7 @@ public class UserController {
     @GetMapping("email/{email}")
     public ResponseEntity<User> getUserByEmail(@RequestParam String email) {
         logger.info("Attempting to get user by an email");
-        if (!isEmailValid(email)) {
+        if (!userService.isEmailValid(email)) {
             logger.error("Invalid email");
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -117,12 +83,10 @@ public class UserController {
         }
 
         // Check if the updated user is valid
-        if (!isUserValid(updatedUser)) {
+        if (!userService.isUserValid(updatedUser)) {
             logger.error("Invalid updatedUser");
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-
-        //TODO code 403 forbidden when authentication is further done
 
         // Update the user
         User userToUpdate = existingUserOptional.get();
@@ -142,12 +106,10 @@ public class UserController {
     @DeleteMapping("/{email}")
     public ResponseEntity<Void> deleteByEmail(@RequestBody String email) {
         logger.info("Attempting to delete user by email");
-        if (!isEmailValid(email)) {
+        if (!userService.isEmailValid(email)) {
             logger.error("Invalid email");
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-
-        // TODO code 403 forbidden when authentication is further done
 
         if (!userService.userExistsByEmail(email)) {
             logger.error("User not found");
@@ -215,35 +177,5 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(users, HttpStatus.OK);
-    }
-
-    /* Helper functions */
-
-    private boolean isUserValid(User user) {
-        String fullname = user.getFullname();
-        String email = user.getEmail();
-        String password = user.getPassword();
-        Role role = user.getRole();
-
-        if (fullname == null || fullname.length() <= MIN_FULLNAME_LENGTH || fullname.length() >= MAX_FULLNAME_LENGTH) {
-            return false;
-        }
-
-        if (password == null || password.length() <= MIN_PASSWORD_LENGTH || password.length() >= MAX_PASSWORD_LENGTH) {
-            return false;
-        }
-
-        if (role == null || role != Role.DISASSOCIATED) { // Enforce that the default role is Disassociated
-            return false;
-        }
-
-        return isEmailValid(email);
-    }
-
-    private boolean isEmailValid(String email) {
-        if (email == null) {
-            return false;
-        }
-        return email.length() >= MIN_EMAIL_LENGTH && email.length() <= MAX_EMAIL_LENGTH && email.matches(EMAIL_REGEX);
     }
 }
