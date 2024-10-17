@@ -5,6 +5,10 @@ import com.supplywise.supplywise.model.Role;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.repositories.UserRepository;
 
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
@@ -43,6 +47,21 @@ public class UserService {
     // Get a user by email (which is unique)
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    // Load user by email for JWT authentication
+    public UserDetails loadUserByEmail(String email) {
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+        if (!optionalUser.isPresent()) {
+            throw new UsernameNotFoundException("User not found");
+        }
+
+        User user = optionalUser.get();
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(user.getEmail())
+                .password(user.getPassword())
+                .roles(user.getRole().toString())
+                .build();
     }
 
     // Check if a user exists by email

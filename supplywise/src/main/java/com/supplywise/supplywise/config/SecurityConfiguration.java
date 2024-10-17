@@ -32,10 +32,9 @@ public class SecurityConfiguration {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll() // Endpoints públicos
+                .requestMatchers("/api/auth/**").permitAll() // Expose public part of the API
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/user/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER", "DISASSOCIATED")
-                //.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));    
