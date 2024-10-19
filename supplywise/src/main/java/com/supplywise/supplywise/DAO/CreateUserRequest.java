@@ -1,4 +1,4 @@
-package com.supplywise.supplywise.DTO;
+package com.supplywise.supplywise.DAO;
 
 import lombok.Data;
 import lombok.Builder;

@@ -1,7 +1,7 @@
 package com.supplywise.supplywise.controllers;
 
 import com.supplywise.supplywise.model.User;
-import com.supplywise.supplywise.DTO.CreateUserRequest;
+import com.supplywise.supplywise.DAO.CreateUserRequest;
 import com.supplywise.supplywise.model.Role;
 import com.supplywise.supplywise.services.UserService;
 import com.supplywise.supplywise.services.JwtService;
