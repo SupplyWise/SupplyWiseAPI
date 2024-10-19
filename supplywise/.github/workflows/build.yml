@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - dev
+      - SUP-*
   pull_request:
     types: [opened, synchronize, reopened]
 
