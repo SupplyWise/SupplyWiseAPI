@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "user")
+@Table(name = "users")
 @Data
 @NoArgsConstructor
 public class User{
@@ -21,19 +21,24 @@ public class User{
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "UUID")
     private UUID id;
 
-    @NotBlank(message = "Username is mandatory")
-    @Size(min = 5, max = 255, message = "Username should be between 5 and 255 characters long")
-    @Column(name = "username", nullable = false, unique = true, length = 255)
-    private String username;
+    @NotBlank(message = "Fullname is mandatory")
+    @Size(min = 5, max = 255, message = "Fullname should be between 5 and 255 characters long")
+    @Column(name = "fullname", nullable = false, length = 255)
+    private String fullname;
+
+    @NotBlank(message = "Email is mandatory")
+    @Size(min = 5, max = 255, message = "Email should be between 5 and 255 characters long")
+    @Column(name = "email", nullable = false, length = 255, unique = true)
+    private String email;
 
     @NotBlank(message = "Password is mandatory")
-    @Size(max = 255)
+    @Size(min = 5, max = 255, message = "Password should be between 5 and 255 characters long")
     @Column(name = "password", nullable = false, length = 255)
     private String password;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private Role role = Role.MANAGER;   // default role is Manager
+    private Role role = Role.DISASSOCIATED;   // default role is Disassociated (can´t be manager because it needs a restaurant)
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "restaurant_id", nullable = true)
@@ -47,8 +52,9 @@ public class User{
     @org.hibernate.annotations.UpdateTimestamp
     private LocalDateTime updatedAt;
     
-    public User(String username, String password, Role role, Restaurant restaurant){
-        this.username = username;
+    public User(String fullname, String email, String password, Role role, Restaurant restaurant){
+        this.fullname = fullname;
+        this.email = email;
         this.password = password;
         this.role = role;
         this.restaurant = restaurant;

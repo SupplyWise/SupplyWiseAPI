@@ -2,7 +2,12 @@ package com.supplywise.supplywise.services;
 
 import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.model.Role;
+import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.repositories.UserRepository;
+
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,87 +20,150 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UserService{
+public class UserService {
+
+    private int MIN_FULLNAME_LENGTH = 5;
+    private int MAX_FULLNAME_LENGTH = 255;
+    private int MIN_EMAIL_LENGTH = 5;
+    private int MAX_EMAIL_LENGTH = 100;
+    private int MIN_PASSWORD_LENGTH = 8;
+    private int MAX_PASSWORD_LENGTH = 80;
+    private String EMAIL_REGEX = "[a-z][a-z0-9._+-]+@[a-z]+\\.[a-z]{2,6}";
 
     private UserRepository userRepository;
 
     @Autowired
-    public UserService(UserRepository userRepository){
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
-    // create a new user
-    public User createUser(User user){
+    // Create a new user
+    public User createUser(User user) {
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
-    // update an existing user
-    public Optional<User> updateUser(UUID id, User updatedUser){
-        if (!userRepository.existsById(id)) {
+    // Get a user by email (which is unique)
+    public Optional<User> getUserByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    // Load user by email for JWT authentication
+    public UserDetails loadUserByEmail(String email) {
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+        if (!optionalUser.isPresent()) {
+            throw new UsernameNotFoundException("User not found");
+        }
+
+        User user = optionalUser.get();
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(user.getEmail())
+                .password(user.getPassword())
+                .roles(user.getRole().toString())
+                .build();
+    }
+
+    // Check if a user exists by email
+    public boolean userExistsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    // Update an existing user
+    public Optional<User> updateUser(UUID id, User updatedUser) {
+        Optional<User> optionalExistingUser = userRepository.findById(id);
+        if (!optionalExistingUser.isPresent()) {
             return Optional.empty();
         }
-        User existingUser = userRepository.findById(id).get();
 
-        existingUser.setUsername(updatedUser.getUsername());
-        if(!updatedUser.getPassword().equals(existingUser.getPassword())){
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+        // Get the existing user's attributes
+        User existingUser = optionalExistingUser.get();
+        String existingFullname = existingUser.getFullname();
+        String existingEmail = existingUser.getEmail();
+        String existingPassword = existingUser.getPassword();
+        Role existingRole = existingUser.getRole();
+        Restaurant existingRestaurant = existingUser.getRestaurant();
+
+        // Get the updated user's attributes
+        String newFullname = updatedUser.getFullname();
+        String newEmail = updatedUser.getEmail();
+        String newPassword = updatedUser.getPassword();
+        Role newRole = updatedUser.getRole();
+        Restaurant newRestaurant = updatedUser.getRestaurant();
+
+        // Update the user attributes that are new
+        if (!newFullname.equals(existingFullname)) {
+            existingUser.setFullname(newFullname);
         }
-        existingUser.setRole(updatedUser.getRole());
-        existingUser.setRestaurant(updatedUser.getRestaurant());
+        if (!newEmail.equals(existingEmail)) {
+            existingUser.setEmail(newEmail);
+        }
+        if (!newPassword.equals(existingPassword)) {
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            String encoded = passwordEncoder.encode(newPassword);
+            existingUser.setPassword(encoded);
+        }
+        if (!newRole.equals(existingRole)) {
+            existingUser.setRole(newRole);
+        }
+        if (newRestaurant!= null && !newRestaurant.equals(existingRestaurant)) {
+            existingUser.setRestaurant(newRestaurant);
+        }
 
         return Optional.of(userRepository.save(existingUser));
     }
 
-    // get user by id
-    public Optional<User> getUserById(UUID id){
-        return userRepository.findById(id);
+    // Delete user by their email (which is unique)
+    public void deleteByEmail(String email) {
+        userRepository.deleteByEmail(email);
     }
 
-    // get user by username
-    public Optional<User> getUserByUsername(String username){
-        return userRepository.findByUsername(username);
-    }
-
-    // get users by username containing a part of the username
-    public List<User> getUsersByUsernameContaining(String usernamePart){
-        return userRepository.findByUsernameContaining(usernamePart);
-    }
-
-    // get users by role
-    public List<User> getUsersByRole(Role role){
-        return userRepository.findByRole(role);
-    }
-
-    // get users by restaurant id
+    // Get users by restaurant id
     public List<User> getUsersByRestaurantId(UUID restaurantId) {
         return userRepository.findByRestaurantId(restaurantId);
     }
 
-    // get users by role and restaurant id
-    public List<User> getUsersByRoleAndRestaurantId(Role role, UUID restaurantId){
-        return userRepository.findByRoleAndRestaurantId(role, restaurantId);
+    /* Admin methods */
+
+    // Get all users by role
+    public List<User> getUsersByRole(Role role) {
+        return userRepository.findByRole(role);
     }
 
-    // delete user
-    public void deleteByUsername(String username){
-        userRepository.deleteByUsername(username);
-    }
-
-    // confirm if user exists by its username
-    public boolean existsByUsername(String username){
-        return userRepository.existsByUsername(username);
-    }
-
-    // confirm if user exists by its id
-    public boolean existsById(UUID id){
-        return userRepository.existsById(id);
-    }
-
-    // get all users
-    public Page<User> getAllUsers(Pageable pageable){
+    // Get all users
+    public Page<User> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable);
+    }
+
+    /* Helper functions */
+
+    public boolean isUserValid(User user) {
+        String fullname = user.getFullname();
+        String email = user.getEmail();
+        String password = user.getPassword();
+
+        if (fullname == null || fullname.length() < MIN_FULLNAME_LENGTH || fullname.length() > MAX_FULLNAME_LENGTH) {
+            System.out.println("Fullname is invalid");
+            return false;
+        }
+
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
+            System.out.println("Password is invalid!" + password + " " + password.length());
+            return false;
+        }
+        return isEmailValid(email);
+    }
+
+    public boolean isEmailValid(String email) {
+        if (email == null) {
+            System.out.println("Email is null");
+            return false;
+        }
+        return (email.length() > MIN_EMAIL_LENGTH && email.length() < MAX_EMAIL_LENGTH && email.matches(EMAIL_REGEX));
+    }
+
+    public boolean isPasswordCorrect(String password, String encodedPassword) {
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        return passwordEncoder.matches(password, encodedPassword);
     }
 }
