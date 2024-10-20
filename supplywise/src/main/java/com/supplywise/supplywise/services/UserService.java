@@ -106,7 +106,7 @@ public class UserService {
         if (!newRole.equals(existingRole)) {
             existingUser.setRole(newRole);
         }
-        if (!newRestaurant.equals(existingRestaurant)) {
+        if (newRestaurant!= null && !newRestaurant.equals(existingRestaurant)) {
             existingUser.setRestaurant(newRestaurant);
         }
 
