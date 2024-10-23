@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: supplywisepassword
       POSTGRES_DB: supplywise
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -22,7 +22,7 @@ services:
     depends_on:
       - postgres-supplywise
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-supplywise:5432/supplywise
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-supplywise:5433/supplywise
       SPRING_DATASOURCE_USERNAME: supplywiseuser
       SPRING_DATASOURCE_PASSWORD: supplywisepassword
     networks:
