@@ -5,6 +5,8 @@ import com.supplywise.supplywise.repositories.CompanyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class CompanyService {
 
@@ -13,5 +15,9 @@ public class CompanyService {
 
     public Company createCompany(Company company) {
         return companyRepository.save(company);
+    }
+
+    public boolean companyExists(UUID id) {
+        return companyRepository.existsById(id);
     }
 }
