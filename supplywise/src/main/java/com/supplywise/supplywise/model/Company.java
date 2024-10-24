@@ -24,6 +24,9 @@ public class Company {
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 
+    @Column(name = "owner_id", nullable = false, columnDefinition = "UUID")
+    private UUID ownerId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -32,7 +35,8 @@ public class Company {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Company(String name) {
+    public Company(String name, UUID ownerId) {
         this.name = name;
+        this.ownerId = ownerId;
     }
 }

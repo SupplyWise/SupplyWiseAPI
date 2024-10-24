@@ -16,6 +16,7 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID>{
     Optional<User> findByEmail(String email);
+    User findByEmailUser(String email);
     boolean existsByEmail(String email);
 //    User update(String email, User newUser); // Intended for full name, password or role changes
     void deleteByEmail(String email); // Intended when firing an employee

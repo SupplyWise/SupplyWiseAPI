@@ -49,6 +49,10 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
+    public User findByEmailUser(String email) {
+        return userRepository.findByEmailUser(email);
+    }
+
     // Load user by email for JWT authentication
     public UserDetails loadUserByEmail(String email) {
         Optional<User> optionalUser = userRepository.findByEmail(email);

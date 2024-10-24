@@ -59,4 +59,6 @@ public class User{
         this.role = role;
         this.restaurant = restaurant;
     }
+
+    
 }
