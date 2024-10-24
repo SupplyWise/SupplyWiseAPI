@@ -40,6 +40,26 @@ public class RestaurantController {
         //! TODO: this.companyService = companyService;
     }
 
+    @Operation(summary = "Create a new restaurant", description = "Create a new restaurant for a company")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Restaurant created successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid restaurant data")
+    })
+    @PostMapping("/")
+    public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant) {
+        logger.info("Attempting to create a new restaurant");
+
+        //! TODO: Company company = restaurant.getCompany();
+        //! TODO: if (company == null || !companyService.companyExistsById(company.getId())) {
+        //! TODO:     logger.error("Invalid or missing company");
+        //! TODO:     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        //! TODO: }
+
+        Restaurant savedRestaurant = restaurantService.saveRestaurant(restaurant);
+        logger.info("Restaurant created successfully");
+        return new ResponseEntity<>(savedRestaurant, HttpStatus.CREATED);
+    }
+
     @Operation(summary = "Get restaurant by ID", description = "Retrieve a restaurant by its ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Restaurant found",
@@ -57,26 +77,6 @@ public class RestaurantController {
         }
         logger.error("Restaurant not found");
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-    }
-
-    @Operation(summary = "Create a new restaurant", description = "Create a new restaurant for a company")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Restaurant created successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid restaurant data")
-    })
-    @PostMapping
-    public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant) {
-        logger.info("Attempting to create a new restaurant");
-
-        //! TODO: Company company = restaurant.getCompany();
-        //! TODO: if (company == null || !companyService.companyExistsById(company.getId())) {
-        //! TODO:     logger.error("Invalid or missing company");
-        //! TODO:     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        //! TODO: }
-
-        Restaurant savedRestaurant = restaurantService.saveRestaurant(restaurant);
-        logger.info("Restaurant created successfully");
-        return new ResponseEntity<>(savedRestaurant, HttpStatus.CREATED);
     }
 
     @Operation(summary = "Update restaurant name by ID", description = "Update an existing restaurant's name by its ID")
