@@ -49,7 +49,9 @@ public class RestaurantService {
 
     // Delete a restaurant by ID
     public void deleteRestaurantById(UUID id) {
-        restaurantRepository.deleteById(id);
+        if (restaurantRepository.existsById(id)) {
+            restaurantRepository.deleteById(id);
+        }
     }
 
     // Get all restaurants by company ID

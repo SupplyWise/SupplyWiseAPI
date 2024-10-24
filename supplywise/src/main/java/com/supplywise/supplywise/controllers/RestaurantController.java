@@ -3,7 +3,7 @@ package com.supplywise.supplywise.controllers;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.model.Company;
 import com.supplywise.supplywise.services.RestaurantService;
-import com.supplywise.supplywise.services.CompanyService;
+//! TODO: import com.supplywise.supplywise.services.CompanyService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -30,13 +30,14 @@ import java.util.UUID;
 public class RestaurantController {
 
     private final RestaurantService restaurantService;
-    private final CompanyService companyService;
+    //! TODO: private final CompanyService companyService;
     private final Logger logger = LoggerFactory.getLogger(RestaurantController.class);
 
     @Autowired
-    public RestaurantController(RestaurantService restaurantService, CompanyService companyService) {
+    //! TODO: public RestaurantController(RestaurantService restaurantService, CompanyService companyService) {
+    public RestaurantController(RestaurantService restaurantService) {
         this.restaurantService = restaurantService;
-        this.companyService = companyService;
+        //! TODO: this.companyService = companyService;
     }
 
     @Operation(summary = "Get restaurant by ID", description = "Retrieve a restaurant by its ID")
@@ -67,11 +68,11 @@ public class RestaurantController {
     public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant) {
         logger.info("Attempting to create a new restaurant");
 
-        Company company = restaurant.getCompany();
-        if (company == null || !companyService.companyExistsById(company.getId())) {
-            logger.error("Invalid or missing company");
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+        //! TODO: Company company = restaurant.getCompany();
+        //! TODO: if (company == null || !companyService.companyExistsById(company.getId())) {
+        //! TODO:     logger.error("Invalid or missing company");
+        //! TODO:     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        //! TODO: }
 
         Restaurant savedRestaurant = restaurantService.saveRestaurant(restaurant);
         logger.info("Restaurant created successfully");
