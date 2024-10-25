@@ -4,14 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.model.Company;
 import com.supplywise.supplywise.services.RestaurantService;
-//! TODO: import com.supplywise.supplywise.services.CompanyService;
+import com.supplywise.supplywise.services.CompanyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -33,8 +31,8 @@ class RestaurantControllerTest {
     @Mock
     private RestaurantService restaurantService;
 
-    //! TODO: @Mock
-    //! TODO: private CompanyService companyService;
+    @Mock
+    private CompanyService companyService;
 
     @InjectMocks
     private RestaurantController restaurantController;
@@ -48,43 +46,41 @@ class RestaurantControllerTest {
         objectMapper = new ObjectMapper();
     }
 
-    //! TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // @Test
-    // void testCreateRestaurant_Success() throws Exception {
-    //     UUID companyId = UUID.randomUUID();
-    //     Company company = new Company();
-    //     company.setId(companyId);
+    @Test
+    void testCreateRestaurant_Success() throws Exception {
+        UUID companyId = UUID.randomUUID();
+        Company company = new Company();
+        company.setId(companyId);
 
-    //     Restaurant restaurant = new Restaurant();
-    //     restaurant.setCompany(company);
-    //     restaurant.setName("Test Restaurant");
+        Restaurant restaurant = new Restaurant();
+        restaurant.setCompany(company);
+        restaurant.setName("Test Restaurant");
 
-    //     when(companyService.companyExistsById(companyId)).thenReturn(true);
-    //     when(restaurantService.saveRestaurant(any(Restaurant.class))).thenReturn(restaurant);
+        when(companyService.companyExists(companyId)).thenReturn(true);
+        when(restaurantService.saveRestaurant(any(Restaurant.class))).thenReturn(restaurant);
 
-    //     mockMvc.perform(post("/api/restaurants")
-    //                     .contentType("application/json")
-    //                     .content(objectMapper.writeValueAsString(restaurant)))
-    //             .andExpect(status().isCreated())
-    //             .andExpect(jsonPath("$.name").value("Test Restaurant"));
+        mockMvc.perform(post("/api/restaurants/")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(restaurant)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Test Restaurant"));
         
-    //     verify(restaurantService, times(1)).saveRestaurant(any(Restaurant.class));
-    // }
+        verify(restaurantService, times(1)).saveRestaurant(any(Restaurant.class));
+    }
 
 
-    //! TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // @Test
-    // void testCreateRestaurant_InvalidCompany() throws Exception {
-    //     Restaurant restaurant = new Restaurant();
-    //     restaurant.setCompany(new Company()); // Setting an invalid company without an ID
+    @Test
+    void testCreateRestaurant_InvalidCompany() throws Exception {
+        Restaurant restaurant = new Restaurant();
+        restaurant.setCompany(new Company()); // Setting an invalid company without an ID
 
-    //     mockMvc.perform(post("/api/restaurants")
-    //                     .contentType("application/json")
-    //                     .content(objectMapper.writeValueAsString(restaurant)))
-    //             .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/restaurants/")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(restaurant)))
+                .andExpect(status().isBadRequest());
         
-    //     verify(restaurantService, never()).saveRestaurant(any(Restaurant.class));
-    // }
+        verify(restaurantService, never()).saveRestaurant(any(Restaurant.class));
+    }
 
     @Test
     void testGetRestaurantById_Success() throws Exception {

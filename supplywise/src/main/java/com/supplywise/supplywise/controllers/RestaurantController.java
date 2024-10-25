@@ -3,10 +3,9 @@ package com.supplywise.supplywise.controllers;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.model.Company;
 import com.supplywise.supplywise.services.RestaurantService;
-//! TODO: import com.supplywise.supplywise.services.CompanyService;
+import com.supplywise.supplywise.services.CompanyService;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -30,14 +29,13 @@ import java.util.UUID;
 public class RestaurantController {
 
     private final RestaurantService restaurantService;
-    //! TODO: private final CompanyService companyService;
+    private final CompanyService companyService;
     private final Logger logger = LoggerFactory.getLogger(RestaurantController.class);
 
     @Autowired
-    //! TODO: public RestaurantController(RestaurantService restaurantService, CompanyService companyService) {
-    public RestaurantController(RestaurantService restaurantService) {
+    public RestaurantController(RestaurantService restaurantService, CompanyService companyService) {
         this.restaurantService = restaurantService;
-        //! TODO: this.companyService = companyService;
+        this.companyService = companyService;
     }
 
     @Operation(summary = "Create a new restaurant", description = "Create a new restaurant for a company")
@@ -49,11 +47,11 @@ public class RestaurantController {
     public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant) {
         logger.info("Attempting to create a new restaurant");
 
-        //! TODO: Company company = restaurant.getCompany();
-        //! TODO: if (company == null || !companyService.companyExistsById(company.getId())) {
-        //! TODO:     logger.error("Invalid or missing company");
-        //! TODO:     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        //! TODO: }
+        Company company = restaurant.getCompany();
+        if (company == null || !companyService.companyExists(company.getId())) {
+            logger.error("Invalid or missing company");
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
 
         Restaurant savedRestaurant = restaurantService.saveRestaurant(restaurant);
         logger.info("Restaurant created successfully");
