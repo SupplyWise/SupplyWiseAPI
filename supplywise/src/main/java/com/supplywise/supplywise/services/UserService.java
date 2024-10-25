@@ -3,6 +3,7 @@ package com.supplywise.supplywise.services;
 import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.model.Role;
 import com.supplywise.supplywise.model.Restaurant;
+import com.supplywise.supplywise.model.Company;
 import com.supplywise.supplywise.repositories.UserRepository;
 
 import org.springframework.security.core.userdetails.UserDetails;
@@ -47,6 +48,10 @@ public class UserService {
     // Get a user by email (which is unique)
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    public User findByEmailUser(String email) {
+        return userRepository.findByEmail(email).orElse(null);
     }
 
     // Load user by email for JWT authentication
@@ -121,6 +126,11 @@ public class UserService {
     // Get users by restaurant id
     public List<User> getUsersByRestaurantId(UUID restaurantId) {
         return userRepository.findByRestaurantId(restaurantId);
+    }
+
+    // Get company details
+    public Company getCompanyDetails(UUID companyId) {
+        return userRepository.findByCompanyId(companyId);
     }
 
     /* Admin methods */

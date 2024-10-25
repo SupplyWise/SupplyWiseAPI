@@ -2,6 +2,7 @@ package com.supplywise.supplywise.services;
 
 import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.model.Role;
+import com.supplywise.supplywise.model.Company;
 import com.supplywise.supplywise.repositories.UserRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -132,4 +133,24 @@ class UserServiceTest {
         assertTrue(result.isEmpty());
     }
 
+    @Test
+    void testGetCompanyDetails_UserIsManager_ShouldReturnCompanyDetails() {
+        Company company = new Company();
+        company.setName("Company Name");
+
+        // User data
+        User user = new User();
+        user.setRole(Role.MANAGER);
+        user.setRestaurant(null);
+        user.setCompany(company);
+
+        // Mock the repository
+        when(userRepository.findByCompanyId(company.getId())).thenReturn(company);
+
+        // Execute the method
+        Company companyFetched = userService.getCompanyDetails(company.getId());
+
+        // Check the result
+        assertEquals("Company Name", companyFetched.getName());
+    }
 }
