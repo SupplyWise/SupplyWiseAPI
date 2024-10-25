@@ -18,13 +18,10 @@ public class AuthHandler {
     public User getAuthenticatedUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        if (principal instanceof UserDetails) {
-            String username = ((UserDetails) principal).getUsername();
-            System.out.println("Username: " + username);
-            System.out.println("User" + userService.getUserByEmail(username));
-            return userService.findByEmailUser(username);  // Fetch the User entity by username
+        if (principal == null || !(principal instanceof UserDetails)) {
+            return null;
         }
 
-        return null;
+        return userService.findByEmailUser(((UserDetails) principal).getUsername());
     }
 }
