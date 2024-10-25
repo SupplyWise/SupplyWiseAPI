@@ -39,7 +39,6 @@ public class CompanyController {
     @Operation(summary = "Create a new company", description = "Create a new company with the given name")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Company created successfully"),
-            @ApiResponse(responseCode = "401", description = "User is not authenticated"),
             @ApiResponse(responseCode = "403", description = "User is not eligible to create a company")
     })
     @PostMapping("/create")
@@ -47,12 +46,7 @@ public class CompanyController {
 
         logger.info("Attempting to create a new company");
 
-        // Check if user is authenticated
         User user = authHandler.getAuthenticatedUser();
-        if (user == null) {
-            logger.error("User is not authenticated");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authenticated.");
-        }
 
         // Check if user is eligible to create a company
         if (user.getRole() != Role.DISASSOCIATED) {

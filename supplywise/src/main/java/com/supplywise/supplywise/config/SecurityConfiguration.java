@@ -2,7 +2,7 @@ package com.supplywise.supplywise.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -39,6 +39,8 @@ public class SecurityConfiguration {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/user/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER", "DISASSOCIATED")
                 .requestMatchers("/api/company/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER", "DISASSOCIATED")
+                .requestMatchers(HttpMethod.POST, "/api/company").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "DISASSOCIATED") // Allow creating a company for disassociated users
+                .requestMatchers("/api/company/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER") // Restrict other company-related endpoints
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

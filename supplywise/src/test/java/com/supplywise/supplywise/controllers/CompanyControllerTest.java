@@ -87,23 +87,6 @@ class CompanyControllerTest {
                 .andExpect(content().string("Company created successfully. Role updated to FRANCHISE_OWNER."));
     }
 
-    //TODO not passing due to securityConfiguration not allowing unauthenticated users should we remove this?
-    // @Test
-    // @WithAnonymousUser
-    // void testCreateCompany_UnauthenticatedUser() throws Exception {
-    //     String companyName = "TechCorp";
-
-    //     //when(authHandler.getAuthenticatedUser()).thenReturn(null);
-
-    //     assert authHandler.getAuthenticatedUser() == null;
-
-    //     // Make the request and check if it returns UNAUTHORIZED (401)
-    //     mockMvc.perform(post("/api/company/create")
-    //             .param("name", companyName)
-    //             .contentType(MediaType.APPLICATION_JSON))
-    //             .andExpect(status().isUnauthorized())
-    //             .andExpect(content().string("User is not authenticated."));
-    // }
 
     @Test
     @WithMockUser(username = "testuser", roles = { "FRANCHISE_OWNER" })
