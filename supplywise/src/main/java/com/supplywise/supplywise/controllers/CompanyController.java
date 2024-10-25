@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/company")
 @Tag(name = "Company Controller", description = "API for Company operations")
@@ -66,5 +68,36 @@ public class CompanyController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Company created successfully. Role updated to FRANCHISE_OWNER.");
+    }
+
+    @Operation(summary = "Get company details", description = "Get the details of a company by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Company details fetched successfully"),
+            @ApiResponse(responseCode = "403", description = "User is not eligible to view company details"),
+            @ApiResponse(responseCode = "404", description = "Company not found")
+    })
+    @GetMapping("/details/{id}")
+    public ResponseEntity<String> getCompanyDetails(@PathVariable UUID id) {
+
+        logger.info("Attempting to fetch company details");
+
+        // Get the authenticated user
+        User authenticatedUser = authHandler.getAuthenticatedUser();
+
+        // Check if company exists
+        Company company = userService.getCompanyDetails(id);
+        if (company == null) {
+            logger.error("Company not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Company ID does not exist.");
+        }
+        
+        // Check if the user is eligible to view company details
+        if (!authenticatedUser.getCompany().getId().equals(id) && authenticatedUser.getRole() != Role.ADMIN) {
+            logger.error("User is not eligible to view company details");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not eligible to view company details.");
+        }
+
+        logger.info("Company details fetched successfully");
+        return ResponseEntity.ok(company.toString());
     }
 }

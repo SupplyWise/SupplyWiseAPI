@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -106,4 +107,52 @@ class CompanyControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(content().string("User is not eligible to create a company."));
     }
+
+    @Test
+    @WithMockUser(username = "testuser", roles = {"MANAGER"})
+    void testGetCompanyDetails_UserIsManager_ShouldReturnCompanyDetails() throws Exception {
+        Company company = new Company();
+        company.setId(UUID.randomUUID());
+        company.setName("Company Name");
+
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setCompany(company);
+
+        // Mock the repository
+        when(authHandler.getAuthenticatedUser()).thenReturn(user);
+        when(userService.getCompanyDetails(company.getId())).thenReturn(company);
+
+        // Make the request and check if it returns the company name
+        mockMvc.perform(get("/api/company/details/" + company.getId())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string(company.toString()));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser", roles = {"MANAGER"})
+    void testGetCompanyDetails_UserDoesNotBelongToCompany_ShouldReturnForbidden() throws Exception {
+        Company company = new Company();
+        company.setId(UUID.randomUUID());
+        company.setName("Company Name");
+
+        Company otherCompany = new Company();
+        otherCompany.setId(UUID.randomUUID());
+
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setCompany(otherCompany);
+
+        // Mock the repository
+        when(authHandler.getAuthenticatedUser()).thenReturn(user);
+        when(userService.getCompanyDetails(company.getId())).thenReturn(company);
+
+        // Make the request and check if it returns FORBIDDEN (403)
+        mockMvc.perform(get("/api/company/details/" + company.getId())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(content().string("User is not eligible to view company details."));
+    }
+
 }

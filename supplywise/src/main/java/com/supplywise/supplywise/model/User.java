@@ -44,6 +44,10 @@ public class User{
     @JoinColumn(name = "restaurant_id", nullable = true)
     private Restaurant restaurant;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = true)
+    private Company company;
+
     @Column(name = "created_at", nullable = false)
     @org.hibernate.annotations.CreationTimestamp
     private LocalDateTime createdAt;
@@ -52,13 +56,12 @@ public class User{
     @org.hibernate.annotations.UpdateTimestamp
     private LocalDateTime updatedAt;
     
-    public User(String fullname, String email, String password, Role role, Restaurant restaurant){
+    public User(String fullname, String email, String password, Role role, Restaurant restaurant, Company company) {
         this.fullname = fullname;
         this.email = email;
         this.password = password;
         this.role = role;
         this.restaurant = restaurant;
+        this.company = company;
     }
-
-    
 }
