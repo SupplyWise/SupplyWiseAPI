@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -68,6 +69,7 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Invalid user data"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @PreAuthorize("hasRole('ADMIN') or #email == authentication.principal.username")
     @PutMapping("email/{email}")
     public ResponseEntity<User> updateUser(@PathVariable String email, @RequestBody User updatedUser) {
         logger.info("Attempting to update user by email");
@@ -104,6 +106,7 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Invalid email"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @PreAuthorize("hasRole('ADMIN') or #email == authentication.principal.username")
     @DeleteMapping("/{email}")
     public ResponseEntity<Void> deleteByEmail(@PathVariable String email) {
         logger.info("Attempting to delete user by email");
