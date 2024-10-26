@@ -3,7 +3,6 @@ package com.supplywise.supplywise.repositories;
 import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.model.Role;
 import com.supplywise.supplywise.model.Company;
-import com.supplywise.supplywise.model.Restaurant;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

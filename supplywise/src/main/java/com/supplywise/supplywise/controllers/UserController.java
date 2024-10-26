@@ -5,7 +5,6 @@ import com.supplywise.supplywise.model.Role;
 import com.supplywise.supplywise.services.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,8 +30,6 @@ import org.slf4j.LoggerFactory;
 @RequestMapping("/api/users")
 @Tag(name = "User Controller", description = "API for managing users")
 public class UserController {
-
-    //TODO code 403 forbidden when authentication is further done
 
     private final UserService userService;
     private final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -49,7 +47,7 @@ public class UserController {
         @ApiResponse(responseCode = "404", description = "User not found")
     })
     @GetMapping("email/{email}")
-    public ResponseEntity<User> getUserByEmail(@RequestParam String email) {
+    public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
         logger.info("Attempting to get user by an email");
         if (!userService.isEmailValid(email)) {
             logger.error("Invalid email");
@@ -71,9 +69,16 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Invalid user data"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @PreAuthorize("hasRole('ADMIN') or #email == authentication.principal.username")
     @PutMapping("email/{email}")
-    public ResponseEntity<User> updateUser(@RequestBody String email, @RequestBody User updatedUser) {
+    public ResponseEntity<User> updateUser(@PathVariable String email, @RequestBody User updatedUser) {
         logger.info("Attempting to update user by email");
+
+        // Check if the email is valid
+        if (!userService.isEmailValid(email)) {
+            logger.error("Invalid email");
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
 
         // Obtain the existing user
         Optional<User> existingUserOptional = userService.getUserByEmail(email);
@@ -89,10 +94,8 @@ public class UserController {
         }
 
         // Update the user
-        User userToUpdate = existingUserOptional.get();
-        if (userService.updateUser(userToUpdate.getId(), updatedUser) != null) {
-            logger.info("User updated");
-        }
+        userService.updateUser(existingUserOptional.get().getId(), updatedUser);
+        logger.info("User updated");
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -103,8 +106,9 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Invalid email"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @PreAuthorize("hasRole('ADMIN') or #email == authentication.principal.username")
     @DeleteMapping("/{email}")
-    public ResponseEntity<Void> deleteByEmail(@RequestBody String email) {
+    public ResponseEntity<Void> deleteByEmail(@PathVariable String email) {
         logger.info("Attempting to delete user by email");
         if (!userService.isEmailValid(email)) {
             logger.error("Invalid email");
@@ -120,6 +124,8 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+
+    // TODO review these as they are unnecessary for now (also, the last 2 should be admin only)
     @Operation(summary = "Get users by restaurant ID", description = "Retrieve users associated with a specific restaurant")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
@@ -127,7 +133,7 @@ public class UserController {
         @ApiResponse(responseCode = "204", description = "No users found")
     })
     @GetMapping("/restaurant/{restaurantId}")
-    public ResponseEntity<List<User>> getUsersByRestaurantId(@RequestParam UUID restaurantId) {
+    public ResponseEntity<List<User>> getUsersByRestaurantId(@PathVariable UUID restaurantId) {
         logger.info("Attempting to get users by restaurant id");
         // Check if the restaurant id is valid
         if (restaurantId == null) {
@@ -150,7 +156,7 @@ public class UserController {
         @ApiResponse(responseCode = "204", description = "No users found")
     })
     @GetMapping("/role/{role}")
-    public ResponseEntity<List<User>> getUsersByRole(@RequestParam Role role) {
+    public ResponseEntity<List<User>> getUsersByRole(@PathVariable Role role) {
         logger.info("Attempting to get users by role");
         if (role == null) {
             logger.error("Invalid role");

@@ -7,7 +7,6 @@ import com.supplywise.supplywise.model.Company;
 import com.supplywise.supplywise.repositories.UserRepository;
 
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,13 +22,13 @@ import java.util.Optional;
 @Service
 public class UserService {
 
-    private int MIN_FULLNAME_LENGTH = 5;
-    private int MAX_FULLNAME_LENGTH = 255;
-    private int MIN_EMAIL_LENGTH = 5;
-    private int MAX_EMAIL_LENGTH = 100;
-    private int MIN_PASSWORD_LENGTH = 8;
-    private int MAX_PASSWORD_LENGTH = 80;
-    private String EMAIL_REGEX = "[a-z][a-z0-9._+-]+@[a-z]+\\.[a-z]{2,6}";
+    private static final int MIN_FULLNAME_LENGTH = 5;
+    private static final int MAX_FULLNAME_LENGTH = 255;
+    private static final int MIN_EMAIL_LENGTH = 5;
+    private static final int MAX_EMAIL_LENGTH = 100;
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_PASSWORD_LENGTH = 80;
+    private static final String EMAIL_REGEX = "[a-z][a-z0-9._+-]+@[a-z]+\\.[a-z]{2,6}";
 
     private UserRepository userRepository;
 
@@ -88,6 +87,7 @@ public class UserService {
         String existingPassword = existingUser.getPassword();
         Role existingRole = existingUser.getRole();
         Restaurant existingRestaurant = existingUser.getRestaurant();
+        Company existingCompany = existingUser.getCompany();
 
         // Get the updated user's attributes
         String newFullname = updatedUser.getFullname();
@@ -153,12 +153,10 @@ public class UserService {
         String password = user.getPassword();
 
         if (fullname == null || fullname.length() < MIN_FULLNAME_LENGTH || fullname.length() > MAX_FULLNAME_LENGTH) {
-            System.out.println("Fullname is invalid");
             return false;
         }
 
         if (password == null || password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
-            System.out.println("Password is invalid!" + password + " " + password.length());
             return false;
         }
         return isEmailValid(email);
@@ -166,7 +164,6 @@ public class UserService {
 
     public boolean isEmailValid(String email) {
         if (email == null) {
-            System.out.println("Email is null");
             return false;
         }
         return (email.length() > MIN_EMAIL_LENGTH && email.length() < MAX_EMAIL_LENGTH && email.matches(EMAIL_REGEX));
