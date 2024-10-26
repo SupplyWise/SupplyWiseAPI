@@ -61,6 +61,11 @@ public class CompanyController {
         companyService.createCompany(company);
         logger.info("Company created successfully");
 
+        // Update user company
+        user.setCompany(company);
+        userService.updateUser(user.getId(), user);
+        logger.info("User company updated");
+
         // Update user role to FRANCHISE_OWNER
         user.setRole(Role.FRANCHISE_OWNER);
         userService.updateUser(user.getId(), user);
