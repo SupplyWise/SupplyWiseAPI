@@ -44,7 +44,7 @@ public class User{
     @JoinColumn(name = "restaurant_id", nullable = true)
     private Restaurant restaurant;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "company_id", nullable = true)
     private Company company;
 
