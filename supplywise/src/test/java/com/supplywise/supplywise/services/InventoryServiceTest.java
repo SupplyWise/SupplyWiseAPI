@@ -149,4 +149,52 @@ class InventoryServiceTest {
         // Then
         verify(inventoryRepository, never()).deleteById(any());
     }
+
+    @Test
+    void testUpdateInventory_ShouldUpdateInventory() {
+        UUID inventoryId = UUID.randomUUID();
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(UUID.randomUUID());
+        Inventory existingInventory = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(7), "Old report");
+        existingInventory.setId(inventoryId);
+
+        Inventory updatedInventory = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now().plusDays(2), LocalDateTime.now().plusDays(8), "Updated report");
+        updatedInventory.setId(inventoryId);
+
+        // Mock the repository to return the existing inventory
+        when(inventoryRepository.findById(inventoryId)).thenReturn(Optional.of(existingInventory));
+        when(inventoryRepository.save(any(Inventory.class))).thenReturn(updatedInventory);
+
+        // Call the updateInventory method
+        Optional<Inventory> result = inventoryService.updateInventory(inventoryId, updatedInventory);
+
+        assertTrue(result.isPresent());
+        Inventory updatedResult = result.get();
+
+        // Assertions to verify the update
+        assertEquals("Updated report", updatedResult.getReport());
+        assertEquals(updatedInventory.getEmissionDate(), updatedResult.getEmissionDate());
+        assertEquals(updatedInventory.getClosingDate(), updatedResult.getClosingDate());
+        assertEquals(updatedInventory.getExpectedClosingDate(), updatedResult.getExpectedClosingDate());
+
+        verify(inventoryRepository, times(1)).save(updatedInventory);
+    }
+
+    @Test
+    void testUpdateInventory_NotFound_ShouldReturnNull() {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory updatedInventory = new Inventory();
+        updatedInventory.setId(inventoryId);
+
+        // Mock the repository to return an empty Optional
+        when(inventoryRepository.findById(inventoryId)).thenReturn(Optional.empty());
+
+        // Call the updateInventory method
+        Optional<Inventory> result = inventoryService.updateInventory(inventoryId, updatedInventory);
+
+        // Assertions to verify the result is null
+        assertFalse(result.isPresent());
+        verify(inventoryRepository, never()).save(any(Inventory.class));
+    }
+
 }

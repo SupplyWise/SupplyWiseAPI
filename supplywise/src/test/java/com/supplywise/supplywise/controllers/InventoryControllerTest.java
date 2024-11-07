@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -59,7 +59,7 @@ class InventoryControllerTest {
         inventory.setRestaurant(restaurant);
         inventory.setEmissionDate(LocalDateTime.now());
         inventory.setClosingDate(LocalDateTime.now());
-        inventory.setExpectedClosingDate(LocalDateTime.now());
+        inventory.setExpectedClosingDate(LocalDateTime.now().plusDays(7));
         inventory.setReport("Test report");
 
         when(restaurantService.restaurantExistsById(restaurantId)).thenReturn(true);
@@ -180,4 +180,73 @@ class InventoryControllerTest {
         
         verify(inventoryService, times(1)).getInventoryById(any(UUID.class));
     }
+
+    @Test
+    void testUpdateInventory_Success() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        UUID restaurantId = UUID.randomUUID();
+
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(restaurantId);
+
+        Inventory inventory = new Inventory();
+        inventory.setId(inventoryId);
+        inventory.setRestaurant(restaurant);
+        inventory.setEmissionDate(LocalDateTime.now());
+        inventory.setClosingDate(LocalDateTime.now().plusDays(7));
+        inventory.setExpectedClosingDate(LocalDateTime.now().plusDays(14));
+        inventory.setReport("Updated report");
+
+        when(restaurantService.restaurantExistsById(restaurantId)).thenReturn(true);
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(new Inventory()));
+        when(inventoryService.updateInventory(eq(inventoryId), any(Inventory.class))).thenReturn(Optional.of(inventory));
+
+        mockMvc.perform(put("/api/inventories/" + inventoryId)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(inventory)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.report").value("Updated report"));
+
+        verify(inventoryService, times(1)).updateInventory(eq(inventoryId), any(Inventory.class));
+    }
+
+    @Test
+    void testUpdateInventory_NotFound() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        UUID restaurantId = UUID.randomUUID();
+        
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(restaurantId);
+
+        Inventory inventory = new Inventory();
+        inventory.setId(inventoryId);
+        inventory.setRestaurant(restaurant);
+
+        when(restaurantService.restaurantExistsById(restaurantId)).thenReturn(true);
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/api/inventories/" + inventoryId)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(inventory)))
+                .andExpect(status().isNotFound());
+
+        verify(inventoryService, never()).saveInventory(any(Inventory.class));
+    }
+
+
+    @Test
+    void testUpdateInventory_InvalidData() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = new Inventory();
+        inventory.setId(inventoryId);
+        // no restaurant, simulating an invalid input.
+
+        mockMvc.perform(put("/api/inventories/" + inventoryId)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(inventory)))
+                .andExpect(status().isBadRequest());
+
+        verify(inventoryService, never()).saveInventory(any(Inventory.class));
+    }
+
 }

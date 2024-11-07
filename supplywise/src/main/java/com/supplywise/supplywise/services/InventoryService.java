@@ -37,4 +37,19 @@ public class InventoryService {
             inventoryRepository.deleteById(id);
         }
     }
+
+    public Optional<Inventory> updateInventory(UUID id, Inventory inventoryDetails) {
+        return inventoryRepository.findById(id).map(existingInventory ->
+            {
+                existingInventory.setEmissionDate(inventoryDetails.getEmissionDate());
+                existingInventory.setClosingDate(inventoryDetails.getClosingDate());
+                existingInventory.setExpectedClosingDate(inventoryDetails.getExpectedClosingDate());
+                existingInventory.setReport(inventoryDetails.getReport());
+                existingInventory.setRestaurant(inventoryDetails.getRestaurant());
+
+                return Optional.of(inventoryRepository.save(existingInventory));
+            }
+        ).orElse(Optional.empty());
+    }
+
 }

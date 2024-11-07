@@ -120,4 +120,31 @@ public class InventoryController {
         logger.info("Inventory deleted successfully");
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
+    @Operation(summary = "Update inventory by ID", description = "Update an existing inventory record by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Inventory updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Inventory not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid inventory data")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<Inventory> updateInventory(@PathVariable UUID id, @RequestBody Inventory inventoryDetails) {
+        logger.info("Attempting to update inventory with ID: {}", id);
+
+        Restaurant restaurant = inventoryDetails.getRestaurant();
+        if (restaurant == null || !restaurantService.restaurantExistsById(restaurant.getId())) {
+            logger.error("Invalid or missing restaurant");
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        Optional<Inventory> updatedInventory = inventoryService.updateInventory(id, inventoryDetails);
+        if (updatedInventory.isPresent()) {
+            logger.info("Inventory updated successfully");
+            return new ResponseEntity<>(updatedInventory.get(), HttpStatus.OK);
+        }
+
+        logger.error("Inventory not found");
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
 }
