@@ -5,6 +5,10 @@ import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.model.Role;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +34,12 @@ public class ItemPropertiesController {
         this.authHandler = authHandler;
     }
 
+    @Operation(summary = "Create new item properties")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Item properties created successfully"),
+            @ApiResponse(responseCode = "400", description = "Item properties is not valid"),
+            @ApiResponse(responseCode = "403", description = "User is not authorized to create item properties")
+    })
     @PostMapping("/create")
     public ResponseEntity<?> createItemProperties(@RequestBody ItemProperties itemProperties) {
         logger.info("Attempting to create item properties");
@@ -50,6 +60,10 @@ public class ItemPropertiesController {
         }
     }
 
+    @Operation(summary = "Get all item properties")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Fetched all item properties successfully")
+    })
     @GetMapping
     public ResponseEntity<List<ItemProperties>> getAllItemProperties() {
         logger.info("Fetching all item properties");
@@ -59,8 +73,14 @@ public class ItemPropertiesController {
         return ResponseEntity.ok(itemPropertiesList);
     }
 
+    @Operation(summary = "Get item properties by ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Item properties fetched successfully"),
+            @ApiResponse(responseCode = "403", description = "User is not authorized to fetch item properties"),
+            @ApiResponse(responseCode = "404", description = "Item properties ID does not exist")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<?> getItemPropertiesById(@PathVariable UUID id) {
+    public ResponseEntity<?> getItemPropertiesById(@Parameter(description = "ID of the item properties to be fetched") @PathVariable UUID id) {
         logger.info("Attempting to fetch item properties with ID: {}", id);
 
         User authenticatedUser = authHandler.getAuthenticatedUser();
@@ -73,15 +93,20 @@ public class ItemPropertiesController {
 
         if (itemProperties == null) {
             logger.error("Item properties not found with ID: {}", id);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Item Properties ID does not exist.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Item properties ID does not exist.");
         }
 
         logger.info("Item properties fetched successfully with ID: {}", id);
         return ResponseEntity.ok(itemProperties);
     }
 
+    @Operation(summary = "Delete item properties by ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Item properties deleted successfully"),
+            @ApiResponse(responseCode = "403", description = "User is not authorized to delete item properties")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteItemProperties(@PathVariable UUID id) {
+    public ResponseEntity<?> deleteItemProperties(@Parameter(description = "ID of the item properties to be deleted") @PathVariable UUID id) {
         logger.info("Attempting to delete item properties with ID: {}", id);
 
         User authenticatedUser = authHandler.getAuthenticatedUser();

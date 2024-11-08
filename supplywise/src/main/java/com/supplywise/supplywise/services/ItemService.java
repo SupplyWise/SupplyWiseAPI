@@ -27,6 +27,9 @@ public class ItemService {
         if (!isItemValid(item)) {
             throw new IllegalArgumentException("Item is not valid");
         }
+        if (isItemDuplicate(item)) {
+            throw new IllegalArgumentException("Item with the same barcode already exists");
+        }
         return itemRepository.save(item);
     }
 
@@ -47,9 +50,19 @@ public class ItemService {
 
     public Item updateItem(UUID id, Item itemDetails) {
         Item item = itemRepository.findById(id).orElse(null);
+        if (item == null) {
+            throw new IllegalArgumentException("Item not found");
+        }
 
         if (!isItemValid(itemDetails)) {
             throw new IllegalArgumentException("Item is not valid");
+        }
+
+        // Check if the updated item is a duplicate
+        int oldBarCode = item.getBarCode(); 
+        int newBarCode = itemDetails.getBarCode();
+        if ((oldBarCode != newBarCode) && isItemDuplicate(itemDetails)) {
+            throw new IllegalArgumentException("Item with the same barcode already exists");
         }
 
         item.setName(itemDetails.getName());
@@ -85,5 +98,9 @@ public class ItemService {
         }
 
         return isBarCodeValid(itemBarCode);
+    }
+
+    private boolean isItemDuplicate(Item item) {
+        return itemRepository.findByBarCode(item.getBarCode()).isPresent();
     }
 }
