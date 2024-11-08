@@ -1,6 +1,7 @@
 package com.supplywise.supplywise.controllers;
 
 import com.supplywise.supplywise.model.Inventory;
+import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.services.InventoryService;
 import com.supplywise.supplywise.services.RestaurantService;
@@ -100,6 +101,25 @@ public class InventoryController {
 
         logger.info("Inventories found");
         return new ResponseEntity<>(inventories, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Get all item stocks by inventory ID", description = "Retrieve all item stocks associated with a specific inventory")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Item stocks retrieved successfully"),
+            @ApiResponse(responseCode = "204", description = "No item stocks found")
+    })
+    @GetMapping("/{inventoryId}/item-stocks")
+    public ResponseEntity<List<ItemStock>> getItemStocksByInventoryId(@PathVariable UUID inventoryId) {
+        logger.info("Attempting to get item stocks by inventory ID");
+
+        List<ItemStock> itemStocks = inventoryService.getItemStocksByInventoryId(inventoryId);
+        if (itemStocks == null || itemStocks.isEmpty()) {
+            logger.error("No item stocks found");
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
+        logger.info("Item stocks found");
+        return new ResponseEntity<>(itemStocks, HttpStatus.OK);
     }
 
     @Operation(summary = "Delete inventory by ID", description = "Delete an existing inventory record by its ID")

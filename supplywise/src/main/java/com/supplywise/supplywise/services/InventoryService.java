@@ -1,6 +1,7 @@
 package com.supplywise.supplywise.services;
 
 import com.supplywise.supplywise.model.Inventory;
+import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.repositories.InventoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,10 +15,12 @@ import java.util.UUID;
 public class InventoryService {
 
     private final InventoryRepository inventoryRepository;
+    private final ItemStockRepository itemStockRepository;
 
     @Autowired
-    public InventoryService(InventoryRepository inventoryRepository) {
+    public InventoryService(InventoryRepository inventoryRepository, ItemStockRepository itemStockRepository) {
         this.inventoryRepository = inventoryRepository;
+        this.itemStockRepository = itemStockRepository;
     }
 
     public Inventory saveInventory(Inventory inventory) {
@@ -47,9 +50,27 @@ public class InventoryService {
                 existingInventory.setReport(inventoryDetails.getReport());
                 existingInventory.setRestaurant(inventoryDetails.getRestaurant());
 
+                existingInventory.getItemStocks().clear();
+                for (ItemStock itemStock: inventoryDetails.getItemStocks()) {
+                    existingInventory.addItemStock(itemStock);
+                }
+
                 return Optional.of(inventoryRepository.save(existingInventory));
             }
         ).orElse(Optional.empty());
     }
+
+    public List<ItemStock> getItemStocksByInventoryId(UUID inventoryId) {
+        Optional<Inventory> inventory = getInventoryById(inventoryId);
+        return inventory.map(Inventory::getItemStocks).orElse(null);
+    }
+
+    // public ItemStock saveItemStock(ItemStock itemStock) {
+    //     return itemStockRepository.save(itemStock);
+    // }
+
+    // public void deleteItemStockById(UUID id) {
+    //     itemStockRepository.deleteById(id);
+    // }
 
 }
