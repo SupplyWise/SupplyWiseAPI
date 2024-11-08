@@ -23,6 +23,9 @@ public class ItemPropertiesService {
     }
 
     public ItemProperties createItemProperties(ItemProperties itemProperties) {
+        if (!isItemPropertiesValid(itemProperties)) {
+            throw new IllegalArgumentException("Item properties is not valid");
+        }
         return itemPropertiesRepository.save(itemProperties);
     }
 
@@ -39,6 +42,10 @@ public class ItemPropertiesService {
     }
 
     public ItemProperties updateItemProperties(UUID id, ItemProperties itemProperties) {
+        if (!isItemPropertiesValid(itemProperties)) {
+            throw new IllegalArgumentException("Item properties is not valid");
+        }
+
         ItemProperties itemPropertiesToUpdate = itemPropertiesRepository.findById(id).orElse(null);
         if (itemPropertiesToUpdate == null) {
             return null;
@@ -51,15 +58,19 @@ public class ItemPropertiesService {
 
     /* Helper functions */
 
-    public boolean isItemSetValid(ItemProperties itemSet) {
-        Item item = itemRepository.findById(itemSet.getItem().getId()).orElse(null);
+    private boolean isItemPropertiesValid(ItemProperties itemProperties) {
+        if (itemProperties == null) {
+            return false;
+        }
+
+        Item item = itemRepository.findById(itemProperties.getItem().getId()).orElse(null);
         if (item == null) {
             return false;
         }
-        if (itemSet.getQuantity() < MIN_ITEM_QUANTITY) {
+        if (itemProperties.getQuantity() < MIN_ITEM_QUANTITY) {
             return false;
         }
-        if (itemSet.getExpirationDate() == null) {
+        if (itemProperties.getExpirationDate() == null) {
             return false;
         }
         return true;

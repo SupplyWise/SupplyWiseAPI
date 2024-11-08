@@ -28,13 +28,13 @@ public class Item {
 
     @Column(name = "barcode", unique = true)
     @Pattern(regexp = "\\d{3,30}", message = "Bar code must be a numeric string with length between 3 and 30")
-    private String barCode;
+    private int barCode;
 
     @NotBlank(message = "Item must have a category")
     @Enumerated(EnumType.STRING)
     private Category category;
 
-    public Item(String name, String barCode, Category category) {
+    public Item(String name, int barCode, Category category) {
         this.name = name;
         this.barCode = barCode;
         this.category = category;

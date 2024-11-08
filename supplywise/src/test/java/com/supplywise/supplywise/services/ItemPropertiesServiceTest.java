@@ -1,8 +1,10 @@
 package com.supplywise.supplywise.services;
 
 import com.supplywise.supplywise.model.Item;
+import com.supplywise.supplywise.repositories.ItemRepository;
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.repositories.ItemPropertiesRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -19,6 +21,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class ItemPropertiesServiceTest {
+
+    @Mock
+    private ItemRepository itemRepository;
 
     @Mock
     private ItemPropertiesRepository itemPropertiesRepository;
@@ -42,6 +47,9 @@ class ItemPropertiesServiceTest {
         itemProperties.setItem(item);
         itemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
         itemProperties.setQuantity(100);
+
+        // Mock the repository to return the item
+        when(itemRepository.findById(any(UUID.class))).thenReturn(Optional.of(item));
 
         // Mock the repository to return the itemProperties when saved
         when(itemPropertiesRepository.save(any(ItemProperties.class))).thenReturn(itemProperties);
@@ -156,6 +164,10 @@ class ItemPropertiesServiceTest {
 
         // Mock the repository to return the existing itemProperties when searched by ID
         when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.of(existingItemProperties));
+
+        // Mock the repository to return the item
+        when(itemRepository.findById(any(UUID.class))).thenReturn(Optional.of(item));
+
         // Mock the repository to return the updated itemProperties when saved
         when(itemPropertiesRepository.save(any(ItemProperties.class))).thenReturn(updatedItemProperties);
 

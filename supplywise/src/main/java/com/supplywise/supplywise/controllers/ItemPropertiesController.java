@@ -40,9 +40,14 @@ public class ItemPropertiesController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to create item properties.");
         }
 
-        ItemProperties createdItemProperties = itemPropertiesService.createItemProperties(itemProperties);
-        logger.info("Item properties created successfully with ID: {}", createdItemProperties.getId());
-        return new ResponseEntity<>(createdItemProperties, HttpStatus.CREATED);
+        try {
+            ItemProperties createdItemProperties = itemPropertiesService.createItemProperties(itemProperties);
+            logger.info("Item properties created successfully with ID: {}", createdItemProperties.getId());
+            return new ResponseEntity<>(createdItemProperties, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            logger.error("Item properties is not valid");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Item properties is not valid.");
+        }
     }
 
     @GetMapping
@@ -65,7 +70,6 @@ public class ItemPropertiesController {
         }
 
         ItemProperties itemProperties = itemPropertiesService.getItemPropertiesById(id);
-
 
         if (itemProperties == null) {
             logger.error("Item properties not found with ID: {}", id);

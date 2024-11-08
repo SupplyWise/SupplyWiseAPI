@@ -114,7 +114,7 @@ class ItemServiceTest {
         // Item data
         int barCode = 123456;
         Item item = new Item();
-        item.setBarCode(String.valueOf(barCode));
+        item.setBarCode(barCode);
         item.setName("Test Item");
 
         // Mock the repository to return the item when searched by barcode
@@ -125,7 +125,7 @@ class ItemServiceTest {
 
         // Check if the item is returned
         assertNotNull(foundItem);
-        assertEquals(barCode, Integer.parseInt(foundItem.getBarCode()));
+        assertEquals(barCode, foundItem.getBarCode());
         assertEquals("Test Item", foundItem.getName());
 
         // Verify that the findByBarCode method was called
@@ -157,12 +157,12 @@ class ItemServiceTest {
         Item existingItem = new Item();
         existingItem.setId(itemId);
         existingItem.setName("Old Item");
-        existingItem.setBarCode("123456");
+        existingItem.setBarCode(123456);
         existingItem.setCategory(Category.EATABLE);
 
         Item updatedItemDetails = new Item();
         updatedItemDetails.setName("Updated Item");
-        updatedItemDetails.setBarCode("654321");
+        updatedItemDetails.setBarCode(654321);
         updatedItemDetails.setCategory(Category.DRINKABLE);
 
         // Mock the repository to return the existing item when searched by ID
@@ -190,7 +190,7 @@ class ItemServiceTest {
         UUID itemId = UUID.randomUUID();
         Item updatedItemDetails = new Item();
         updatedItemDetails.setName("Updated Item");
-        updatedItemDetails.setBarCode("654321");
+        updatedItemDetails.setBarCode(654321);
         updatedItemDetails.setCategory(Category.EATABLE);
 
         // Mock the repository to return an empty result when searching by ID

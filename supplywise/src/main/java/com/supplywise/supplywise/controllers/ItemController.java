@@ -40,9 +40,14 @@ public class ItemController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to create items.");
         }
 
-        Item createdItem = itemService.createItem(item);
-        logger.info("Item created successfully with ID: {}", createdItem.getId());
-        return new ResponseEntity<>(createdItem, HttpStatus.CREATED);
+        try {
+            Item createdItem = itemService.createItem(item);
+            logger.info("Item created successfully with ID: {}", createdItem.getId());
+            return new ResponseEntity<>(createdItem, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            logger.error("Item is not valid");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Item is not valid.");
+        }
     }
 
     @GetMapping
