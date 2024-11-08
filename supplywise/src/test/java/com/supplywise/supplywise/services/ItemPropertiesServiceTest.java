@@ -12,6 +12,7 @@ import org.mockito.MockitoAnnotations;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -99,6 +100,76 @@ class ItemPropertiesServiceTest {
 
         // Verify that the findById method was called
         verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
+    }
+
+    @Test
+    void testGetAllItemProperties_ShouldReturnAllItemProperties() {
+        // Mock ItemProperties list
+        ItemProperties itemProperties1 = new ItemProperties();
+        itemProperties1.setId(UUID.randomUUID());
+        itemProperties1.setItem(new Item());
+        itemProperties1.setExpirationDate(LocalDate.of(2025, 12, 31));
+        itemProperties1.setQuantity(100);
+
+        ItemProperties itemProperties2 = new ItemProperties();
+        itemProperties2.setId(UUID.randomUUID());
+        itemProperties2.setItem(new Item());
+        itemProperties2.setExpirationDate(LocalDate.of(2026, 12, 31));
+        itemProperties2.setQuantity(200);
+
+        List<ItemProperties> itemPropertiesList = List.of(itemProperties1, itemProperties2);
+
+        // Mock the repository to return the list of itemProperties
+        when(itemPropertiesRepository.findAll()).thenReturn(itemPropertiesList);
+
+        // Execute the method
+        List<ItemProperties> foundItemPropertiesList = itemPropertiesService.getAllItemProperties();
+
+        // Check if the list returned matches the mock
+        assertEquals(2, foundItemPropertiesList.size());
+        assertEquals(itemProperties1.getId(), foundItemPropertiesList.get(0).getId());
+        assertEquals(itemProperties2.getId(), foundItemPropertiesList.get(1).getId());
+
+        // Verify that the findAll method was called
+        verify(itemPropertiesRepository, times(1)).findAll();
+    }
+
+    @Test
+    void testUpdateItemProperties_ShouldUpdateAndReturnUpdatedItemProperties() {
+        // Mock Item
+        Item item = new Item();
+        item.setId(UUID.randomUUID());
+
+        // Existing ItemProperties data
+        UUID itemPropertiesId = UUID.randomUUID();
+        ItemProperties existingItemProperties = new ItemProperties();
+        existingItemProperties.setId(itemPropertiesId);
+        existingItemProperties.setItem(item);
+        existingItemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
+        existingItemProperties.setQuantity(100);
+
+        // Updated ItemProperties data
+        ItemProperties updatedItemProperties = new ItemProperties();
+        updatedItemProperties.setItem(item);
+        updatedItemProperties.setExpirationDate(LocalDate.of(2026, 12, 31));
+        updatedItemProperties.setQuantity(200);
+
+        // Mock the repository to return the existing itemProperties when searched by ID
+        when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.of(existingItemProperties));
+        // Mock the repository to return the updated itemProperties when saved
+        when(itemPropertiesRepository.save(any(ItemProperties.class))).thenReturn(updatedItemProperties);
+
+        // Execute the method
+        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties);
+
+        // Verify that the itemProperties is updated and saved
+        verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
+        verify(itemPropertiesRepository, times(1)).save(existingItemProperties);
+
+        // Check if the itemProperties returned matches the updated data
+        assertEquals(item, result.getItem());
+        assertEquals(LocalDate.of(2026, 12, 31), result.getExpirationDate());
+        assertEquals(200, result.getQuantity());
     }
 
     @Test
