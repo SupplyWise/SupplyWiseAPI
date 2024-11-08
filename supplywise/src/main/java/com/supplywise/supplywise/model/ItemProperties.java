@@ -2,6 +2,7 @@ package com.supplywise.supplywise.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -21,13 +22,15 @@ public class ItemProperties {
 
     @ManyToOne
     @JoinColumn(name = "item_id", nullable = false)
+    @NotNull(message = "Item cannot be null")
     private Item item;
 
-    @NotNull
+    @NotNull(message = "Expiration date cannot be null")
     @Column(name = "expiration_date", nullable = false)
     private LocalDate expirationDate;
 
-    @NotNull
+    @NotNull(message = "Quantity cannot be null")
+    @Min(value = 1, message = "Quantity must be at least 1")
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 

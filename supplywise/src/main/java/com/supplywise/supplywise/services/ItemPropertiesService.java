@@ -1,7 +1,9 @@
 package com.supplywise.supplywise.services;
 
+import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.repositories.ItemPropertiesRepository;
+import com.supplywise.supplywise.repositories.ItemRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,10 +12,14 @@ import java.util.UUID;
 @Service
 public class ItemPropertiesService {
 
-    private final ItemPropertiesRepository itemPropertiesRepository;
+    private static final int MIN_ITEM_QUANTITY = 1;
 
-    public ItemPropertiesService(ItemPropertiesRepository itemPropertiesRepository) {
+    private final ItemPropertiesRepository itemPropertiesRepository;
+    private final ItemRepository itemRepository;
+
+    public ItemPropertiesService(ItemPropertiesRepository itemPropertiesRepository, ItemRepository itemRepository) {
         this.itemPropertiesRepository = itemPropertiesRepository;
+        this.itemRepository = itemRepository;
     }
 
     public ItemProperties createItemProperties(ItemProperties itemProperties) {
@@ -41,5 +47,21 @@ public class ItemPropertiesService {
         itemPropertiesToUpdate.setExpirationDate(itemProperties.getExpirationDate());
         itemPropertiesToUpdate.setQuantity(itemProperties.getQuantity());
         return itemPropertiesRepository.save(itemPropertiesToUpdate);
+    }
+
+    /* Helper functions */
+
+    public boolean isItemSetValid(ItemProperties itemSet) {
+        Item item = itemRepository.findById(itemSet.getItem().getId()).orElse(null);
+        if (item == null) {
+            return false;
+        }
+        if (itemSet.getQuantity() < MIN_ITEM_QUANTITY) {
+            return false;
+        }
+        if (itemSet.getExpirationDate() == null) {
+            return false;
+        }
+        return true;
     }
 }
