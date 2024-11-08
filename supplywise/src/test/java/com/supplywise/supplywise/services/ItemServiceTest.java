@@ -36,6 +36,8 @@ class ItemServiceTest {
         // Item data
         Item item = new Item();
         item.setName("Test Item");
+        item.setBarCode(123456);
+        item.setCategory(Category.EATABLE);
 
         // Mock the repository to return the item when saved
         when(itemRepository.save(any(Item.class))).thenReturn(item);
@@ -176,7 +178,7 @@ class ItemServiceTest {
         // Check if the item is updated
         assertNotNull(updatedItem);
         assertEquals("Updated Item", updatedItem.getName());
-        assertEquals("654321", updatedItem.getBarCode());
+        assertEquals(654321, updatedItem.getBarCode());
         assertEquals(Category.DRINKABLE, updatedItem.getCategory());
 
         // Verify that the findById and save methods were called

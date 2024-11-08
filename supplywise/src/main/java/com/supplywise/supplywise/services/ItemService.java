@@ -51,7 +51,7 @@ public class ItemService {
     public Item updateItem(UUID id, Item itemDetails) {
         Item item = itemRepository.findById(id).orElse(null);
         if (item == null) {
-            throw new IllegalArgumentException("Item not found");
+            return null;
         }
 
         if (!isItemValid(itemDetails)) {
@@ -78,7 +78,9 @@ public class ItemService {
     /* Helper functions */
 
     private boolean isBarCodeValid(int barCode) {
-        return barCode >= MIN_BAR_CODE_LENGTH && barCode <= MAX_BAR_CODE_LENGTH;
+        String barCodeStr = String.valueOf(barCode);
+        int barCodeLength = barCodeStr.length();
+        return barCodeLength >= MIN_BAR_CODE_LENGTH && barCodeLength <= MAX_BAR_CODE_LENGTH;
     }
 
     private boolean isItemValid(Item item) {

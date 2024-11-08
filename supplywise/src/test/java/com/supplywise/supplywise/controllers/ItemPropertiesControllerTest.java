@@ -128,7 +128,7 @@ class ItemPropertiesControllerTest {
 
         mockMvc.perform(get("/api/item-properties/{id}", itemId))
                 .andExpect(status().isNotFound())
-                .andExpect(content().string("Item Properties ID does not exist."));
+                .andExpect(content().string("Item properties ID does not exist."));
 
         verify(itemPropertiesService, times(1)).getItemPropertiesById(itemId);
     }
