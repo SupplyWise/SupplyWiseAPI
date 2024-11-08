@@ -58,14 +58,14 @@ public class ItemPropertiesController {
     public ResponseEntity<?> getItemPropertiesById(@PathVariable UUID id) {
         logger.info("Attempting to fetch item properties with ID: {}", id);
 
-        ItemProperties itemProperties = itemPropertiesService.getItemPropertiesById(id);
-
-
         User authenticatedUser = authHandler.getAuthenticatedUser();
         if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
             logger.error("User is not authorized to fetch item properties");
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to fetch item properties.");
         }
+
+        ItemProperties itemProperties = itemPropertiesService.getItemPropertiesById(id);
+
 
         if (itemProperties == null) {
             logger.error("Item properties not found with ID: {}", id);

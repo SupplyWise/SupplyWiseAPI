@@ -1,21 +1,19 @@
 package com.supplywise.supplywise.controllers;
 
 import com.supplywise.supplywise.model.Item;
-import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.model.Role;
-import com.supplywise.supplywise.services.AuthHandler;
+import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.services.ItemService;
+import com.supplywise.supplywise.services.AuthHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Collections;
 import java.util.List;
@@ -23,12 +21,12 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ItemController.class)
 class ItemControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
     @Mock
@@ -40,27 +38,31 @@ class ItemControllerTest {
     @InjectMocks
     private ItemController itemController;
 
-    private User managerUser;
+    private User authorizedUser;
     private User disassociatedUser;
     private Item item;
+    private UUID itemId;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        managerUser = new User();
-        managerUser.setRole(Role.MANAGER);
+        mockMvc = MockMvcBuilders.standaloneSetup(itemController).build();
+
+        itemId = UUID.randomUUID();
+        item = new Item();
+        item.setId(itemId);
+        item.setName("Test Item");
+
+        authorizedUser = new User();
+        authorizedUser.setRole(Role.MANAGER);
 
         disassociatedUser = new User();
         disassociatedUser.setRole(Role.DISASSOCIATED);
-
-        item = new Item();
-        item.setId(UUID.randomUUID());
-        item.setName("Test Item");
     }
 
     @Test
-    void createItem_whenUserIsManager_shouldReturnCreated() throws Exception {
-        when(authHandler.getAuthenticatedUser()).thenReturn(managerUser);
+    void testCreateItem_AuthorizedUser() throws Exception {
+        when(authHandler.getAuthenticatedUser()).thenReturn(authorizedUser);
         when(itemService.createItem(item)).thenReturn(item);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/item/create")
@@ -68,10 +70,12 @@ class ItemControllerTest {
                         .content("{\"name\":\"Test Item\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name", is("Test Item")));
+
+        verify(itemService).createItem(item);
     }
 
     @Test
-    void createItem_whenUserIsDisassociated_shouldReturnForbidden() throws Exception {
+    void testCreateItem_DisassociatedUser() throws Exception {
         when(authHandler.getAuthenticatedUser()).thenReturn(disassociatedUser);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/item/create")
@@ -79,10 +83,12 @@ class ItemControllerTest {
                         .content("{\"name\":\"Test Item\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(content().string("User is not authorized to create items."));
+
+        verify(itemService, never()).createItem(item);
     }
 
     @Test
-    void getAllItems_shouldReturnListOfItems() throws Exception {
+    void testGetAllItems() throws Exception {
         List<Item> items = Collections.singletonList(item);
         when(itemService.getAllItems()).thenReturn(items);
 
@@ -91,56 +97,68 @@ class ItemControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()", is(1)))
                 .andExpect(jsonPath("$[0].name", is("Test Item")));
+
+        verify(itemService).getAllItems();
     }
 
     @Test
-    void getItemById_whenUserIsManager_shouldReturnItem() throws Exception {
-        when(authHandler.getAuthenticatedUser()).thenReturn(managerUser);
-        when(itemService.getItemById(item.getId())).thenReturn(item);
+    void testGetItemById_AuthorizedUser() throws Exception {
+        when(authHandler.getAuthenticatedUser()).thenReturn(authorizedUser);
+        when(itemService.getItemById(itemId)).thenReturn(item);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/item/" + item.getId())
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/item/{id}", itemId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name", is("Test Item")));
+
+        verify(itemService).getItemById(itemId);
     }
 
     @Test
-    void getItemById_whenUserIsDisassociated_shouldReturnForbidden() throws Exception {
+    void testGetItemById_DisassociatedUser() throws Exception {
         when(authHandler.getAuthenticatedUser()).thenReturn(disassociatedUser);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/item/" + item.getId())
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/item/{id}", itemId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden())
                 .andExpect(content().string("User is not authorized to fetch items."));
+
+        verify(itemService, never()).getItemById(itemId);
     }
 
     @Test
-    void getItemById_whenItemNotFound_shouldReturnNotFound() throws Exception {
-        when(authHandler.getAuthenticatedUser()).thenReturn(managerUser);
-        when(itemService.getItemById(item.getId())).thenReturn(null);
+    void testGetItemById_NotFound() throws Exception {
+        when(authHandler.getAuthenticatedUser()).thenReturn(authorizedUser);
+        when(itemService.getItemById(itemId)).thenReturn(null);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/item/" + item.getId())
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/item/{id}", itemId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("Item ID does not exist."));
+
+        verify(itemService).getItemById(itemId);
     }
 
     @Test
-    void deleteItem_whenUserIsManager_shouldReturnNoContent() throws Exception {
-        when(authHandler.getAuthenticatedUser()).thenReturn(managerUser);
+    void testDeleteItem_AuthorizedUser() throws Exception {
+        when(authHandler.getAuthenticatedUser()).thenReturn(authorizedUser);
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/item/" + item.getId())
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/item/{id}", itemId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
+
+        verify(itemService).deleteItem(itemId);
     }
 
     @Test
-    void deleteItem_whenUserIsDisassociated_shouldReturnForbidden() throws Exception {
+    void testDeleteItem_DisassociatedUser() throws Exception {
         when(authHandler.getAuthenticatedUser()).thenReturn(disassociatedUser);
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/item/" + item.getId())
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/item/{id}", itemId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden())
                 .andExpect(content().string("User is not authorized to delete items."));
+
+        verify(itemService, never()).deleteItem(itemId);
     }
 }

@@ -1,37 +1,42 @@
 package com.supplywise.supplywise.controllers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.model.Role;
 import com.supplywise.supplywise.model.User;
-import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.ItemPropertiesService;
+import com.supplywise.supplywise.services.AuthHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.http.MediaType;
 
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ItemPropertiesController.class)
-public class ItemPropertiesControllerTest {
+class ItemPropertiesControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @Mock
     private ItemPropertiesService itemPropertiesService;
 
-    @MockBean
+    @Mock
     private AuthHandler authHandler;
+
+    @InjectMocks
+    private ItemPropertiesController itemPropertiesController;
+
+    private ObjectMapper objectMapper;
 
     private User authorizedUser;
     private User disassociatedUser;
@@ -40,12 +45,16 @@ public class ItemPropertiesControllerTest {
 
     @BeforeEach
     void setUp() {
+        MockitoAnnotations.openMocks(this);
+        mockMvc = MockMvcBuilders.standaloneSetup(itemPropertiesController).build();
+        objectMapper = new ObjectMapper();
+
         itemId = UUID.randomUUID();
         itemProperties = new ItemProperties();
         itemProperties.setId(itemId);
 
         authorizedUser = new User();
-        authorizedUser.setRole(Role.MANAGER); 
+        authorizedUser.setRole(Role.MANAGER);
 
         disassociatedUser = new User();
         disassociatedUser.setRole(Role.DISASSOCIATED);
@@ -58,7 +67,7 @@ public class ItemPropertiesControllerTest {
 
         mockMvc.perform(post("/api/item-properties/create")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"New Item Property\"}"))
+                .content(objectMapper.writeValueAsString(itemProperties)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(itemId.toString()));
 
@@ -71,7 +80,7 @@ public class ItemPropertiesControllerTest {
 
         mockMvc.perform(post("/api/item-properties/create")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"New Item Property\"}"))
+                .content(objectMapper.writeValueAsString(itemProperties)))
                 .andExpect(status().isForbidden())
                 .andExpect(content().string("User is not authorized to create item properties."));
 
