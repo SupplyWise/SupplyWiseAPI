@@ -51,12 +51,15 @@ public class Inventory {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Inventory(Restaurant restaurant, LocalDateTime emissionDate, LocalDateTime closingDate, LocalDateTime expectedClosingDate, String report) {
+    public Inventory(Restaurant restaurant, LocalDateTime emissionDate, LocalDateTime expectedClosingDate) {
         this.restaurant = restaurant;
         this.emissionDate = emissionDate;
-        this.closingDate = closingDate;
         this.expectedClosingDate = expectedClosingDate;
-        this.report = report;
+    }
+
+    public Inventory(Restaurant restaurant, LocalDateTime emissionDate) {
+        this.restaurant = restaurant;
+        this.emissionDate = emissionDate;
     }
 
     public void addItemStock(ItemStock itemStock) {
