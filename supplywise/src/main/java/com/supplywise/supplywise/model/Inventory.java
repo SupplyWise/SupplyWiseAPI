@@ -28,7 +28,7 @@ public class Inventory {
     private Restaurant restaurant;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "inventory_id")
+    @JoinColumn(name = "inventory")
     private Set<ItemStock> itemStocks = new HashSet<>();
 
     @Column(name = "emission_date", nullable = false)
