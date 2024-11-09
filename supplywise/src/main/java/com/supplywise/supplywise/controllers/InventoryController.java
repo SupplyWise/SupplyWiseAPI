@@ -16,12 +16,17 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -103,23 +108,38 @@ public class InventoryController {
         return new ResponseEntity<>(inventories, HttpStatus.OK);
     }
 
-    @Operation(summary = "Get all item stocks by inventory ID", description = "Retrieve all item stocks associated with a specific inventory")
+    @Operation(summary = "Get paginated item stocks by inventory ID", description = "Retrieve paginated item stocks associated with a specific inventory")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Item stocks retrieved successfully"),
             @ApiResponse(responseCode = "204", description = "No item stocks found")
     })
     @GetMapping("/{inventoryId}/item-stocks")
-    public ResponseEntity<List<ItemStock>> getItemStocksByInventoryId(@PathVariable UUID inventoryId) {
-        logger.info("Attempting to get item stocks by inventory ID");
+    public ResponseEntity<Page<ItemStock>> getItemStocksByInventoryId(
+            @PathVariable UUID inventoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-        List<ItemStock> itemStocks = inventoryService.getItemStocksByInventoryId(inventoryId);
-        if (itemStocks == null || itemStocks.isEmpty()) {
-            logger.error("No item stocks found");
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        logger.info("Attempting to get paginated item stocks by inventory ID");
+
+        Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(inventoryId);
+        if (inventoryOptional.isPresent()) {
+            Set<ItemStock> itemStocks = inventoryOptional.get().getItemStocks();
+            
+            // convert Set to List and apply pagination
+            List<ItemStock> itemStockList = new ArrayList<>(itemStocks);
+            int start = Math.min((int)PageRequest.of(page, size).getOffset(), itemStockList.size());
+            int end = Math.min((start + size), itemStockList.size());
+            
+            if (start < end) {
+                List<ItemStock> paginatedItemStocks = itemStockList.subList(start, end);
+                Page<ItemStock> itemStockPage = new PageImpl<>(paginatedItemStocks, PageRequest.of(page, size), itemStockList.size());
+                logger.info("Item stocks found");
+                return new ResponseEntity<>(itemStockPage, HttpStatus.OK);
+            }
         }
 
-        logger.info("Item stocks found");
-        return new ResponseEntity<>(itemStocks, HttpStatus.OK);
+        logger.error("No item stocks found");
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @Operation(summary = "Delete inventory by ID", description = "Delete an existing inventory record by its ID")
@@ -157,14 +177,21 @@ public class InventoryController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
+        Optional<Inventory> existingInventory = inventoryService.getInventoryById(id);
+        if (!existingInventory.isPresent()) {
+            logger.error("Inventory not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
         Optional<Inventory> updatedInventory = inventoryService.updateInventory(id, inventoryDetails);
         if (updatedInventory.isPresent()) {
             logger.info("Inventory updated successfully");
             return new ResponseEntity<>(updatedInventory.get(), HttpStatus.OK);
         }
 
-        logger.error("Inventory not found");
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        logger.error("Inventory update failed");
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
 
 }

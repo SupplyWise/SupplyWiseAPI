@@ -27,8 +27,9 @@ public class Inventory {
     @JoinColumn(name = "restaurant_id", nullable = false)
     private Restaurant restaurant;
 
-    @OneToMany(mappedBy = "inventory", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ItemStock> ItemStocks = new HashSet<>();
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "inventory_id")
+    private Set<ItemStock> itemStocks = new HashSet<>();
 
     @Column(name = "emission_date", nullable = false)
     private LocalDateTime emissionDate;
@@ -60,12 +61,10 @@ public class Inventory {
 
     public void addItemStock(ItemStock itemStock) {
         itemStocks.add(itemStock);
-        itemStock.setInventory(this);
     }
 
     public void removeItemStock(ItemStock itemStock) {
         itemStocks.remove(itemStock);
-        itemStock.setInventory(null);
     }
 
 }
