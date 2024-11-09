@@ -41,6 +41,8 @@ public class SecurityConfiguration {
                 .requestMatchers("/api/company/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER", "DISASSOCIATED")
                 .requestMatchers(HttpMethod.POST, "/api/company").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "DISASSOCIATED") // Allow creating a company for disassociated users
                 .requestMatchers("/api/company/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER") // Restrict other company-related endpoints
+                .requestMatchers("/api/item-properties/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER")
+                .requestMatchers("/api/item/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER")
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
