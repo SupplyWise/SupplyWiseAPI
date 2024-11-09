@@ -2,6 +2,7 @@ package com.supplywise.supplywise.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.supplywise.supplywise.DAO.CreateInventoryRequest;
 import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.Restaurant;
@@ -51,7 +52,16 @@ class InventoryControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
     }
 
-    // Helper method to create a sample inventory with restaurant
+    // Helper method to create a sample CreateInventoryRequest
+    private CreateInventoryRequest createInventoryRequest(UUID restaurantId) {
+        return CreateInventoryRequest.builder()
+                .restaurantId(restaurantId)
+                .emissionDate(LocalDateTime.now())
+                .expectedClosingDate(LocalDateTime.now().plusDays(14))
+                .build();
+    }
+
+    // Helper method to create a sample inventory
     private Inventory createInventory(UUID restaurantId) {
         Restaurant restaurant = new Restaurant();
         restaurant.setId(restaurantId);
@@ -68,14 +78,17 @@ class InventoryControllerTest {
     @Test
     void testCreateInventory_Success() throws Exception {
         UUID restaurantId = UUID.randomUUID();
+        CreateInventoryRequest request = createInventoryRequest(restaurantId);
         Inventory inventory = createInventory(restaurantId);
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(restaurantId);
 
-        when(restaurantService.restaurantExistsById(restaurantId)).thenReturn(true);
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.of(restaurant));
         when(inventoryService.saveInventory(any(Inventory.class))).thenReturn(inventory);
 
         mockMvc.perform(post("/api/inventories/")
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(inventory)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.report").value("Test report"));
 
@@ -84,11 +97,14 @@ class InventoryControllerTest {
 
     @Test
     void testCreateInventory_InvalidRestaurant() throws Exception {
-        Inventory inventory = new Inventory();  // Invalid restaurant (no restaurant ID)
+        UUID restaurantId = UUID.randomUUID();
+        CreateInventoryRequest request = createInventoryRequest(restaurantId);
+
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/inventories/")
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(inventory)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
         verify(inventoryService, never()).saveInventory(any(Inventory.class));
@@ -126,9 +142,7 @@ class InventoryControllerTest {
         UUID restaurantId = UUID.randomUUID();
         Restaurant restaurant = new Restaurant();
         restaurant.setId(restaurantId);
-        Inventory inventory1 = createInventory(restaurantId);
-        Inventory inventory2 = createInventory(restaurantId);
-        List<Inventory> inventories = new ArrayList<>(List.of(inventory1, inventory2));
+        List<Inventory> inventories = List.of(createInventory(restaurantId), createInventory(restaurantId));
 
         when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.of(restaurant));
         when(inventoryService.getInventoriesByRestaurant(any(Restaurant.class))).thenReturn(inventories);
@@ -157,6 +171,7 @@ class InventoryControllerTest {
         UUID restaurantId = UUID.randomUUID();
         Restaurant restaurant = new Restaurant();
         restaurant.setId(restaurantId);
+        
         when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.of(restaurant));
         when(inventoryService.getInventoriesByRestaurant(any(Restaurant.class))).thenReturn(new ArrayList<>());
 
@@ -185,36 +200,50 @@ class InventoryControllerTest {
         mockMvc.perform(delete("/api/inventories/" + inventoryId))
                 .andExpect(status().isNotFound());
 
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, never()).deleteInventoryById(eq(inventoryId));
     }
 
     @Test
     void testUpdateInventory_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         UUID restaurantId = UUID.randomUUID();
-
         Restaurant restaurant = new Restaurant();
         restaurant.setId(restaurantId);
 
-        Inventory inventory = new Inventory();
+        Inventory inventory = createInventory(restaurantId);
         inventory.setId(inventoryId);
-        inventory.setRestaurant(restaurant);
-        inventory.setEmissionDate(LocalDateTime.now());
-        inventory.setClosingDate(LocalDateTime.now().plusDays(7));
-        inventory.setExpectedClosingDate(LocalDateTime.now().plusDays(14));
-        inventory.setReport("Updated report");
 
         when(restaurantService.restaurantExistsById(restaurantId)).thenReturn(true);
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(new Inventory()));
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
         when(inventoryService.updateInventory(eq(inventoryId), any(Inventory.class))).thenReturn(Optional.of(inventory));
 
         mockMvc.perform(put("/api/inventories/" + inventoryId)
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(inventory)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.report").value("Updated report"));
+                .andExpect(jsonPath("$.report").value("Test report"));
 
         verify(inventoryService, times(1)).updateInventory(eq(inventoryId), any(Inventory.class));
+    }
+
+    @Test
+    void testAddItemStockToInventory_Success() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = createInventory(UUID.randomUUID());
+        inventory.setId(inventoryId);
+
+        ItemStock itemStock = new ItemStock();
+        itemStock.setQuantity(10);
+
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.saveInventory(any(Inventory.class))).thenReturn(inventory);
+
+        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemStock)))
+                .andExpect(status().isOk());
+
+        verify(inventoryService, times(1)).saveInventory(any(Inventory.class));
     }
 
     @Test
@@ -238,26 +267,6 @@ class InventoryControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(inventoryService, never()).updateInventory(eq(inventoryId), any(Inventory.class));
-    }
-
-    @Test
-    void testAddItemStockToInventory_Success() throws Exception {
-        UUID inventoryId = UUID.randomUUID();
-        Inventory inventory = new Inventory();
-        inventory.setId(inventoryId);
-
-        ItemStock itemStock = new ItemStock();
-        itemStock.setQuantity(10);
-
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
-        when(inventoryService.saveInventory(any(Inventory.class))).thenReturn(inventory);
-
-        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(itemStock)))
-                .andExpect(status().isOk());
-
-        verify(inventoryService, times(1)).saveInventory(any(Inventory.class));
     }
 
     @Test

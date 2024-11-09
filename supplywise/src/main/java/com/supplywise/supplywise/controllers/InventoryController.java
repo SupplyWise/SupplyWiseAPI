@@ -1,5 +1,6 @@
 package com.supplywise.supplywise.controllers;
 
+import com.supplywise.supplywise.DAO.CreateInventoryRequest;
 import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.Restaurant;
@@ -51,14 +52,21 @@ public class InventoryController {
             @ApiResponse(responseCode = "400", description = "Invalid inventory data")
     })
     @PostMapping("/")
-    public ResponseEntity<Inventory> createInventory(@RequestBody Inventory inventory) {
+    public ResponseEntity<Inventory> createInventory(@RequestBody CreateInventoryRequest createInventoryRequest) {
         logger.info("Attempting to create a new inventory");
 
-        Restaurant restaurant = inventory.getRestaurant();
-        if (restaurant == null || !restaurantService.restaurantExistsById(restaurant.getId())) {
-            logger.error("Invalid or missing restaurant");
+        Optional<Restaurant> restaurantOptional = restaurantService.getRestaurantById(createInventoryRequest.getRestaurantId());
+        if (!restaurantOptional.isPresent()) {
+            logger.error("Restaurant not found");
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+
+        Restaurant restaurant = restaurantOptional.get();
+        Inventory inventory = new Inventory(
+                restaurant,
+                createInventoryRequest.getEmissionDate(),
+                createInventoryRequest.getExpectedClosingDate()
+        );
 
         Inventory savedInventory = inventoryService.saveInventory(inventory);
         logger.info("Inventory created successfully");
