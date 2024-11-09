@@ -40,7 +40,7 @@ public class Inventory {
     @Column(name = "expected_closing_date")
     private LocalDateTime expectedClosingDate;
 
-    @Column(name = "report", nullable = false)
+    @Column(name = "report")
     private String report;
 
     @CreationTimestamp
