@@ -60,8 +60,9 @@ class InventoryServiceTest {
         UUID inventoryId = UUID.randomUUID();
         Restaurant restaurant = new Restaurant();
         restaurant.setId(UUID.randomUUID());
-        Inventory inventory = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now(), "Test report");
+        Inventory inventory = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now());
         inventory.setId(inventoryId);
+        inventory.setReport("Test report");
 
         // Mock the repository
         when(inventoryRepository.findById(inventoryId)).thenReturn(Optional.of(inventory));
@@ -95,8 +96,10 @@ class InventoryServiceTest {
         // Given
         Restaurant restaurant = new Restaurant();
         restaurant.setId(UUID.randomUUID());
-        Inventory inventory1 = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now(), "Report 1");
-        Inventory inventory2 = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now(), "Report 2");
+        Inventory inventory1 = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now());
+        Inventory inventory2 = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now());
+        inventory1.setReport("Report 1");
+        inventory2.setReport("Report 2");
         List<Inventory> inventories = new ArrayList<>(List.of(inventory1, inventory2));
 
         // Mock the repository
@@ -156,11 +159,15 @@ class InventoryServiceTest {
         UUID inventoryId = UUID.randomUUID();
         Restaurant restaurant = new Restaurant();
         restaurant.setId(UUID.randomUUID());
-        Inventory existingInventory = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(7), "Old report");
+        Inventory existingInventory = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now().plusDays(1));
         existingInventory.setId(inventoryId);
+        existingInventory.setClosingDate(LocalDateTime.now().plusDays(7));
+        existingInventory.setReport("Old Report");
 
-        Inventory updatedInventory = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now().plusDays(2), LocalDateTime.now().plusDays(8), "Updated report");
+        Inventory updatedInventory = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now().plusDays(2));
         updatedInventory.setId(inventoryId);
+        updatedInventory.setClosingDate(LocalDateTime.now().plusDays(8));
+        updatedInventory.setReport("Updated report");
 
         // Mock the repository to return the existing inventory
         when(inventoryRepository.findById(inventoryId)).thenReturn(Optional.of(existingInventory));

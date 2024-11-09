@@ -289,4 +289,47 @@ public class InventoryController {
         return new ResponseEntity<>(shouldBeClosed, HttpStatus.OK);
     }
 
+    @Operation(summary = "Get open inventories by restaurant", description = "Retrieve all open inventory records associated with a specific restaurant")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Open inventories retrieved successfully"),
+            @ApiResponse(responseCode = "204", description = "No open inventories found"),
+            @ApiResponse(responseCode = "404", description = "Restaurant not found")
+    })
+    @GetMapping("/restaurant/{restaurantId}/open")
+    public ResponseEntity<List<Inventory>> getOpenInventoriesByRestaurant(@PathVariable UUID restaurantId) {
+        logger.info("Attempting to get open inventories by restaurant ID");
+
+        // Check if the restaurant exists
+        Optional<Restaurant> restaurantOptional = restaurantService.getRestaurantById(restaurantId);
+        if (!restaurantOptional.isPresent()) {
+            logger.error("Restaurant not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        Restaurant restaurant = restaurantOptional.get();
+
+        // Fetch all inventories associated with the restaurant
+        List<Inventory> inventories = inventoryService.getInventoriesByRestaurant(restaurant);
+        
+        // Filter inventories that are open (no closing date or closing date in the future)
+        List<Inventory> openInventories = new ArrayList<>();
+        for (Inventory inventory : inventories) {
+            LocalDateTime closingDate = inventory.getClosingDate();
+            
+            // Inventory is open if no closing date is set or if the closing date is in the future
+            if (closingDate == null || LocalDateTime.now().isBefore(closingDate)) {
+                openInventories.add(inventory);
+            }
+        }
+
+        // Return the open inventories
+        if (openInventories.isEmpty()) {
+            logger.info("No open inventories found");
+            return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
+        }
+
+        logger.info("Open inventories found");
+        return new ResponseEntity<>(openInventories, HttpStatus.OK);
+    }
+
 }

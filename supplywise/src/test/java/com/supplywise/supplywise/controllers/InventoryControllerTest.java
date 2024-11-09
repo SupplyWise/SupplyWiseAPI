@@ -346,4 +346,67 @@ class InventoryControllerTest {
         verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
     }
 
+    @Test
+    void testGetOpenInventoriesByRestaurant_Success() throws Exception {
+        UUID restaurantId = UUID.randomUUID();
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(restaurantId);
+        
+        // Create inventories (one open, one closed)
+        Inventory openInventory = createInventory(restaurantId);
+        openInventory.setClosingDate(LocalDateTime.now().plusDays(1));  // Set to future date
+        
+        Inventory closedInventory = createInventory(restaurantId);
+        closedInventory.setClosingDate(LocalDateTime.now().minusDays(1));  // Set to past date
+        
+        List<Inventory> inventories = List.of(openInventory, closedInventory);
+
+        when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.of(restaurant));
+        when(inventoryService.getInventoriesByRestaurant(eq(restaurant))).thenReturn(inventories);
+
+        mockMvc.perform(get("/api/inventories/restaurant/" + restaurantId + "/open"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].report").value("Test report"));
+
+        verify(inventoryService, times(1)).getInventoriesByRestaurant(eq(restaurant));
+    }
+
+    @Test
+    void testGetOpenInventoriesByRestaurant_NoOpenInventories() throws Exception {
+        UUID restaurantId = UUID.randomUUID();
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(restaurantId);
+        
+        // Create closed inventories (all have past closing dates)
+        Inventory closedInventory1 = createInventory(restaurantId);
+        closedInventory1.setClosingDate(LocalDateTime.now().minusDays(1));
+        
+        Inventory closedInventory2 = createInventory(restaurantId);
+        closedInventory2.setClosingDate(LocalDateTime.now().minusDays(2));
+        
+        List<Inventory> inventories = List.of(closedInventory1, closedInventory2);
+
+        when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.of(restaurant));
+        when(inventoryService.getInventoriesByRestaurant(eq(restaurant))).thenReturn(inventories);
+
+        mockMvc.perform(get("/api/inventories/restaurant/" + restaurantId + "/open"))
+                .andExpect(status().isNoContent());  // No open inventories found
+
+        verify(inventoryService, times(1)).getInventoriesByRestaurant(eq(restaurant));
+    }
+
+    @Test
+    void testGetOpenInventoriesByRestaurant_RestaurantNotFound() throws Exception {
+        UUID restaurantId = UUID.randomUUID();
+        
+        // Mock that the restaurant does not exist
+        when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/inventories/restaurant/" + restaurantId + "/open"))
+                .andExpect(status().isNotFound());  // Restaurant not found
+
+        verify(inventoryService, never()).getInventoriesByRestaurant(any(Restaurant.class));
+    }
+
+
 }
