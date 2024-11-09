@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.services.ItemStockService;
-import com.supplywise.supplywise.services.ItemPropertiesService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -29,9 +28,6 @@ class ItemStockControllerTest {
     @Mock
     private ItemStockService itemStockService;
 
-    @Mock
-    private ItemPropertiesService itemPropertiesService;
-
     @InjectMocks
     private ItemStockController itemStockController;
 
@@ -52,7 +48,6 @@ class ItemStockControllerTest {
 
         ItemStock itemStock = new ItemStock(100, itemProperties);
 
-        when(itemPropertiesService.itemPropertiesExists(itemPropertiesId)).thenReturn(true);
         when(itemStockService.saveItemStock(any(ItemStock.class))).thenReturn(itemStock);
 
         mockMvc.perform(post("/api/item-stock/")
@@ -68,11 +63,12 @@ class ItemStockControllerTest {
     void testCreateItemStock_InvalidItemProperties() throws Exception {
         ItemStock itemStock = new ItemStock();
         itemStock.setQuantity(100);
+        itemStock.setItemProperties(null);
 
         mockMvc.perform(post("/api/item-stock/")
-                        .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(itemStock)))
-                .andExpect(status().isBadRequest());
+                    .contentType("application/json")
+                    .content(objectMapper.writeValueAsString(itemStock)))
+            .andExpect(status().isBadRequest());
 
         verify(itemStockService, never()).saveItemStock(any(ItemStock.class));
     }

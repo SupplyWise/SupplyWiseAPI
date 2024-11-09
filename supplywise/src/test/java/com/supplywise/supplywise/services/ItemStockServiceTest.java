@@ -21,9 +21,6 @@ class ItemStockServiceTest {
     @Mock
     private ItemStockRepository itemStockRepository;
 
-    @Mock
-    private ItemPropertiesService itemPropertiesService;
-
     @InjectMocks
     private ItemStockService itemStockService;
 
@@ -41,8 +38,6 @@ class ItemStockServiceTest {
 
         ItemStock itemStock = new ItemStock(100, itemProperties);
 
-        // Mock the repository and ItemPropertiesService
-        when(itemPropertiesService.itemPropertiesExists(itemPropertiesId)).thenReturn(true);
         when(itemStockRepository.save(any(ItemStock.class))).thenReturn(itemStock);
 
         // When
@@ -57,14 +52,7 @@ class ItemStockServiceTest {
     @Test
     void testSaveItemStock_InvalidItemProperties_ShouldThrowException() {
         // Given
-        UUID itemPropertiesId = UUID.randomUUID();
-        ItemProperties itemProperties = new ItemProperties();
-        itemProperties.setId(itemPropertiesId);
-
-        ItemStock itemStock = new ItemStock(100, itemProperties);
-
-        // Mock the ItemPropertiesService
-        when(itemPropertiesService.itemPropertiesExists(itemPropertiesId)).thenReturn(false);
+        ItemStock itemStock = new ItemStock(100, null);
 
         // When & Then
         assertThrows(IllegalArgumentException.class, () -> itemStockService.saveItemStock(itemStock));

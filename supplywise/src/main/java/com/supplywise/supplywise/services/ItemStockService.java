@@ -13,12 +13,10 @@ import java.util.UUID;
 public class ItemStockService {
 
     private final ItemStockRepository itemStockRepository;
-    private final ItemPropertiesService itemPropertiesService;
 
     @Autowired
-    public ItemStockService(ItemStockRepository itemStockRepository, ItemPropertiesService itemPropertiesService) {
+    public ItemStockService(ItemStockRepository itemStockRepository) {
         this.itemStockRepository = itemStockRepository;
-        this.itemPropertiesService = itemPropertiesService;
     }
 
     // Get an item stock by ID
@@ -29,7 +27,7 @@ public class ItemStockService {
     // Create a new item stock
     public ItemStock saveItemStock(ItemStock itemStock) {
         ItemProperties itemProperties = itemStock.getItemProperties();
-        if (itemProperties == null || !itemPropertiesService.itemPropertiesExists(itemProperties.getId())) {
+        if (itemProperties == null) {
             throw new IllegalArgumentException("Invalid or missing item properties");
         }
         return itemStockRepository.save(itemStock);

@@ -1,10 +1,7 @@
 package com.supplywise.supplywise.controllers;
 
 import com.supplywise.supplywise.model.ItemStock;
-import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.services.ItemStockService;
-import com.supplywise.supplywise.services.ItemPropertiesService;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,13 +25,11 @@ import java.util.UUID;
 public class ItemStockController {
 
     private final ItemStockService itemStockService;
-    private final ItemPropertiesService itemPropertiesService;
     private final Logger logger = LoggerFactory.getLogger(ItemStockController.class);
 
     @Autowired
-    public ItemStockController(ItemStockService itemStockService, ItemPropertiesService itemPropertiesService) {
+    public ItemStockController(ItemStockService itemStockService) {
         this.itemStockService = itemStockService;
-        this.itemPropertiesService = itemPropertiesService;
     }
 
     @Operation(summary = "Create a new item stock", description = "Create a new item stock for a product")
@@ -45,6 +40,11 @@ public class ItemStockController {
     @PostMapping("/")
     public ResponseEntity<ItemStock> createItemStock(@RequestBody ItemStock itemStock) {
         logger.info("Attempting to create a new item stock");
+
+        if (itemStock.getItemProperties() == null) {
+            logger.error("Invalid item stock data: ItemProperties cannot be null");
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
 
         try {
             ItemStock savedItemStock = itemStockService.saveItemStock(itemStock);
