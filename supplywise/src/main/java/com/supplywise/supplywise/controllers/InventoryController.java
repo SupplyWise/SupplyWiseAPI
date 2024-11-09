@@ -193,5 +193,38 @@ public class InventoryController {
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @Operation(summary = "Add item stock to inventory", description = "Add a new item stock to an existing inventory")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Item stock added successfully"),
+            @ApiResponse(responseCode = "404", description = "Inventory not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid item stock data")
+    })
+    @PostMapping("/{inventoryId}/item-stocks")
+    public ResponseEntity<Inventory> addItemStockToInventory(
+            @PathVariable UUID inventoryId, @RequestBody ItemStock itemStock) {
+    
+        logger.info("Attempting to add item stock to inventory with ID: {}", inventoryId);
+    
+        // Check if the item stock is valid
+        if (itemStock == null || itemStock.getQuantity() <= 0) {
+            logger.error("Invalid or missing item stock data");
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    
+        Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(inventoryId);
+    
+        if (!inventoryOptional.isPresent()) {
+            logger.error("Inventory not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    
+        Inventory inventory = inventoryOptional.get();
+        inventory.addItemStock(itemStock);
+        Inventory updatedInventory = inventoryService.saveInventory(inventory);
+    
+        logger.info("Item stock added successfully to inventory");
+        return new ResponseEntity<>(updatedInventory, HttpStatus.OK);
+    }
+    
 
 }

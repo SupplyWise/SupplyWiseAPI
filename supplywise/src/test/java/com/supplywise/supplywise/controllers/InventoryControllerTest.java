@@ -3,6 +3,7 @@ package com.supplywise.supplywise.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.supplywise.supplywise.model.Inventory;
+import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.services.InventoryService;
 import com.supplywise.supplywise.services.RestaurantService;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -237,5 +239,60 @@ class InventoryControllerTest {
 
         verify(inventoryService, never()).updateInventory(eq(inventoryId), any(Inventory.class));
     }
+
+    @Test
+    void testAddItemStockToInventory_Success() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = new Inventory();
+        inventory.setId(inventoryId);
+
+        ItemStock itemStock = new ItemStock();
+        itemStock.setQuantity(10);
+
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.saveInventory(any(Inventory.class))).thenReturn(inventory);
+
+        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemStock)))
+                .andExpect(status().isOk());
+
+        verify(inventoryService, times(1)).saveInventory(any(Inventory.class));
+    }
+
+    @Test
+    void testAddItemStockToInventory_InventoryNotFound() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        ItemStock itemStock = new ItemStock();
+        itemStock.setQuantity(10);
+
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemStock)))
+                .andExpect(status().isNotFound());
+
+        verify(inventoryService, never()).saveInventory(any(Inventory.class));
+    }
+
+    @Test
+    void testAddItemStockToInventory_InvalidItemStockData() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = new Inventory();
+        inventory.setId(inventoryId);
+
+        ItemStock invalidItemStock = new ItemStock();  // No quantity set
+
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+
+        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidItemStock)))
+                .andExpect(status().isBadRequest());
+
+        verify(inventoryService, never()).saveInventory(any(Inventory.class));
+    }
+
 
 }
