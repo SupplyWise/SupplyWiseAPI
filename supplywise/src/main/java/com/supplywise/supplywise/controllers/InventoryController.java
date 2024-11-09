@@ -23,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -226,5 +227,66 @@ public class InventoryController {
         return new ResponseEntity<>(updatedInventory, HttpStatus.OK);
     }
     
+    @Operation(summary = "Check if inventory is closed", description = "Check if the inventory is closed by comparing today's date with the closing date of the inventory")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Inventory is closed or not closed", content = @Content(mediaType = "application/json", schema = @Schema(type = "boolean"))),
+            @ApiResponse(responseCode = "404", description = "Inventory not found")
+    })
+    @GetMapping("/{id}/is-closed")
+    public ResponseEntity<Boolean> isInventoryClosed(@PathVariable UUID id) {
+        logger.info("Attempting to check if inventory with ID: {} is closed", id);
+
+        Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(id);
+        if (!inventoryOptional.isPresent()) {
+            logger.error("Inventory not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        Inventory inventory = inventoryOptional.get();
+        LocalDateTime closingDate = inventory.getClosingDate();
+
+        // If closing date is not set, return false (inventory is not closed)
+        if (closingDate == null) {
+            logger.warn("Closing date not set for inventory");
+            return new ResponseEntity<>(false, HttpStatus.OK);
+        }
+
+        // Check if the current date and time is after the closing date
+        boolean isClosed = LocalDateTime.now().isAfter(closingDate);
+        logger.info("Inventory is closed: {}", isClosed);
+
+        return new ResponseEntity<>(isClosed, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Check if inventory should be closed", description = "Check if the inventory should be closed by comparing today's date with the expected closing date of the inventory")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Inventory should be closed or not", content = @Content(mediaType = "application/json", schema = @Schema(type = "boolean"))),
+            @ApiResponse(responseCode = "404", description = "Inventory not found")
+    })
+    @GetMapping("/{id}/should-be-closed")
+    public ResponseEntity<Boolean> isInventoryExpectedToClose(@PathVariable UUID id) {
+        logger.info("Attempting to check if inventory with ID: {} should be closed", id);
+
+        Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(id);
+        if (!inventoryOptional.isPresent()) {
+            logger.error("Inventory not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        Inventory inventory = inventoryOptional.get();
+        LocalDateTime expectedClosingDate = inventory.getExpectedClosingDate();
+
+        // If expected closing date is not set, return false (inventory should not be closed)
+        if (expectedClosingDate == null) {
+            logger.warn("Expected closing date not set for inventory");
+            return new ResponseEntity<>(false, HttpStatus.OK);
+        }
+
+        // Check if today's date is after the expected closing date
+        boolean shouldBeClosed = LocalDateTime.now().isAfter(expectedClosingDate);
+        logger.info("Inventory should be closed: {}", shouldBeClosed);
+
+        return new ResponseEntity<>(shouldBeClosed, HttpStatus.OK);
+    }
 
 }

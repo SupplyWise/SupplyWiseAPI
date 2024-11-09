@@ -37,8 +37,9 @@ class InventoryServiceTest {
         // Given
         Restaurant restaurant = new Restaurant();
         restaurant.setId(UUID.randomUUID());
+        LocalDateTime dateTime = LocalDateTime.now();
 
-        Inventory inventory = new Inventory(restaurant, LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now(), "Test report");
+        Inventory inventory = new Inventory(restaurant, dateTime, dateTime);
 
         // Mock the repository
         when(inventoryRepository.save(any(Inventory.class))).thenReturn(inventory);
@@ -49,7 +50,7 @@ class InventoryServiceTest {
         // Then
         assertNotNull(savedInventory);
         assertEquals(restaurant.getId(), savedInventory.getRestaurant().getId());
-        assertEquals("Test report", savedInventory.getReport());
+        assertEquals(dateTime, savedInventory.getEmissionDate());
         verify(inventoryRepository, times(1)).save(inventory);
     }
 

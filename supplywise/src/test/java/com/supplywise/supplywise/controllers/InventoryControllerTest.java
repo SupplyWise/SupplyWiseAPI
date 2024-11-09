@@ -294,5 +294,56 @@ class InventoryControllerTest {
         verify(inventoryService, never()).saveInventory(any(Inventory.class));
     }
 
+    @Test
+    void testIsInventoryClosed_Success() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = createInventory(UUID.randomUUID());
+        inventory.setClosingDate(LocalDateTime.now().minusDays(1)); // Set a past closing date to simulate closure
+
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+
+        mockMvc.perform(get("/api/inventories/" + inventoryId + "/is-closed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value(true)); // Adjusted to expect a direct Boolean value
+
+        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+    }
+
+    @Test
+    void testIsInventoryClosed_NotFound() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/inventories/" + inventoryId + "/is-closed"))
+                .andExpect(status().isNotFound());
+
+        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+    }
+
+    @Test
+    void testIsInventoryExpectedToClose_Success() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = createInventory(UUID.randomUUID());
+        inventory.setExpectedClosingDate(LocalDateTime.now().minusDays(1)); // Set a past expected closing date
+
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+
+        mockMvc.perform(get("/api/inventories/" + inventoryId + "/should-be-closed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value(true)); // Adjusted to expect a direct Boolean value
+
+        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+    }
+
+    @Test
+    void testIsInventoryExpectedToClose_NotFound() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/inventories/" + inventoryId + "/should-be-closed"))
+                .andExpect(status().isNotFound());
+
+        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+    }
 
 }
