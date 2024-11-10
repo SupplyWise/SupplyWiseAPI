@@ -400,7 +400,7 @@ class InventoryControllerTest {
         
         // Create inventories (one open, one closed)
         Inventory openInventory = createInventory(restaurantId);
-        openInventory.setClosingDate(LocalDateTime.now().plusDays(1));  // Set to future date
+        openInventory.setClosingDate(null);  // Set to future date
         
         Inventory closedInventory = createInventory(restaurantId);
         closedInventory.setClosingDate(LocalDateTime.now().minusDays(1));  // Set to past date
