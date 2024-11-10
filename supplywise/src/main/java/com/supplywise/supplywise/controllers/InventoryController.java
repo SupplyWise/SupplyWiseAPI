@@ -344,7 +344,7 @@ public class InventoryController {
             LocalDateTime closingDate = inventory.getClosingDate();
             
             // Inventory is open if no closing date is set or if the closing date is in the future
-            if (closingDate == null || LocalDateTime.now().isBefore(closingDate)) {
+            if (closingDate == null) {
                 openInventories.add(inventory);
             }
         }
@@ -357,6 +357,29 @@ public class InventoryController {
 
         logger.info("Open inventories found");
         return new ResponseEntity<>(openInventories, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Close inventory", description = "Close an existing inventory by setting a closing date")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Inventory closed successfully"),
+            @ApiResponse(responseCode = "404", description = "Inventory not found"),
+    })
+    @PutMapping("/{id}/close")
+    public ResponseEntity<Inventory> closeInventory(@PathVariable UUID id, @RequestBody LocalDateTime closingDate) {
+        logger.info("Attempting to close inventory with ID: {}", id);
+
+        Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(id);
+        if (!inventoryOptional.isPresent()) {
+            logger.error("Inventory not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        Inventory inventory = inventoryOptional.get();
+        inventory.setClosingDate(closingDate);
+        Inventory updatedInventory = inventoryService.saveInventory(inventory);
+
+        logger.info("Inventory closed successfully");
+        return new ResponseEntity<>(updatedInventory, HttpStatus.OK);
     }
 
 }
