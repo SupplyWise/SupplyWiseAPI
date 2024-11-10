@@ -120,4 +120,32 @@ public class ItemController {
         logger.info("Item deleted successfully with ID: {}", id);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "Get item by barcode")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Item fetched successfully"),
+            @ApiResponse(responseCode = "403", description = "User is not authorized to fetch items"),
+            @ApiResponse(responseCode = "404", description = "Item barcode does not exist")
+    })
+    @GetMapping("/barcode/{barcode}")
+    public ResponseEntity<?> getItemByBarcode(@Parameter(description = "Barcode of the item to be fetched") @PathVariable int barcode) {
+        logger.info("Attempting to fetch item with barcode: {}", barcode);
+
+        User authenticatedUser = authHandler.getAuthenticatedUser();
+
+        if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
+            logger.error("User is not authorized to fetch items");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to fetch items.");
+        }
+
+        Item item = itemService.getItemByBarcode(barcode);
+
+        if (item == null) {
+            logger.error("Item not found with barcode: {}", barcode);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Item barcode does not exist.");
+        }
+
+        logger.info("Item fetched successfully with barcode: {}", barcode);
+        return ResponseEntity.ok(item);
+    }
 }

@@ -1,10 +1,16 @@
 package com.supplywise.supplywise.controllers;
 
+import com.supplywise.supplywise.DAO.AddItemToInventoryRequest;
 import com.supplywise.supplywise.DAO.CreateInventoryRequest;
 import com.supplywise.supplywise.model.Inventory;
+import com.supplywise.supplywise.model.Item;
+import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.services.InventoryService;
+import com.supplywise.supplywise.services.ItemPropertiesService;
+import com.supplywise.supplywise.services.ItemService;
+import com.supplywise.supplywise.services.ItemStockService;
 import com.supplywise.supplywise.services.RestaurantService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,13 +44,21 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
     private final RestaurantService restaurantService;
+    private final ItemService itemService;
+    private final ItemStockService itemStockService;
+    private final ItemPropertiesService itemPropertiesService;
     private final Logger logger = LoggerFactory.getLogger(InventoryController.class);
 
     @Autowired
-    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService) {
+    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService, ItemService itemService, ItemStockService itemStockService, ItemPropertiesService itemPropertiesService) {
         this.inventoryService = inventoryService;
         this.restaurantService = restaurantService;
+        this.itemService = itemService;
+        this.itemStockService = itemStockService;
+        this.itemPropertiesService = itemPropertiesService;
+        
     }
+
 
     @Operation(summary = "Create a new inventory", description = "Create a new inventory record for a restaurant")
     @ApiResponses(value = {
@@ -210,10 +224,15 @@ public class InventoryController {
     })
     @PostMapping("/{inventoryId}/item-stocks")
     public ResponseEntity<Inventory> addItemStockToInventory(
-            @PathVariable UUID inventoryId, @RequestBody ItemStock itemStock) {
+            @PathVariable UUID inventoryId, @RequestBody AddItemToInventoryRequest itemRequest) {
     
         logger.info("Attempting to add item stock to inventory with ID: {}", inventoryId);
-    
+
+        Item item = itemService.getItemByBarcode(itemRequest.getBarCode());
+        ItemProperties itemProperties = new ItemProperties(item, itemRequest.getExpirationDate(), itemRequest.getQuantity());
+        itemPropertiesService.createItemProperties(itemProperties);
+        ItemStock itemStock = new ItemStock(1, itemProperties);
+        itemStockService.saveItemStock(itemStock);
         // Check if the item stock is valid
         if (itemStock == null || itemStock.getQuantity() <= 0) {
             logger.error("Invalid or missing item stock data");
