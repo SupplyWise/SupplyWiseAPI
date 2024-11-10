@@ -1,9 +1,16 @@
 package com.supplywise.supplywise.controllers;
 
+import com.supplywise.supplywise.DAO.AddItemToInventoryRequest;
+import com.supplywise.supplywise.DAO.CreateInventoryRequest;
 import com.supplywise.supplywise.model.Inventory;
+import com.supplywise.supplywise.model.Item;
+import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.services.InventoryService;
+import com.supplywise.supplywise.services.ItemPropertiesService;
+import com.supplywise.supplywise.services.ItemService;
+import com.supplywise.supplywise.services.ItemStockService;
 import com.supplywise.supplywise.services.RestaurantService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +30,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -36,13 +44,21 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
     private final RestaurantService restaurantService;
+    private final ItemService itemService;
+    private final ItemStockService itemStockService;
+    private final ItemPropertiesService itemPropertiesService;
     private final Logger logger = LoggerFactory.getLogger(InventoryController.class);
 
     @Autowired
-    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService) {
+    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService, ItemService itemService, ItemStockService itemStockService, ItemPropertiesService itemPropertiesService) {
         this.inventoryService = inventoryService;
         this.restaurantService = restaurantService;
+        this.itemService = itemService;
+        this.itemStockService = itemStockService;
+        this.itemPropertiesService = itemPropertiesService;
+        
     }
+
 
     @Operation(summary = "Create a new inventory", description = "Create a new inventory record for a restaurant")
     @ApiResponses(value = {
@@ -50,14 +66,21 @@ public class InventoryController {
             @ApiResponse(responseCode = "400", description = "Invalid inventory data")
     })
     @PostMapping("/")
-    public ResponseEntity<Inventory> createInventory(@RequestBody Inventory inventory) {
+    public ResponseEntity<Inventory> createInventory(@RequestBody CreateInventoryRequest createInventoryRequest) {
         logger.info("Attempting to create a new inventory");
 
-        Restaurant restaurant = inventory.getRestaurant();
-        if (restaurant == null || !restaurantService.restaurantExistsById(restaurant.getId())) {
-            logger.error("Invalid or missing restaurant");
+        Optional<Restaurant> restaurantOptional = restaurantService.getRestaurantById(createInventoryRequest.getRestaurantId());
+        if (!restaurantOptional.isPresent()) {
+            logger.error("Restaurant not found");
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+
+        Restaurant restaurant = restaurantOptional.get();
+        Inventory inventory = new Inventory(
+                restaurant,
+                createInventoryRequest.getEmissionDate(),
+                createInventoryRequest.getExpectedClosingDate()
+        );
 
         Inventory savedInventory = inventoryService.saveInventory(inventory);
         logger.info("Inventory created successfully");
@@ -201,10 +224,15 @@ public class InventoryController {
     })
     @PostMapping("/{inventoryId}/item-stocks")
     public ResponseEntity<Inventory> addItemStockToInventory(
-            @PathVariable UUID inventoryId, @RequestBody ItemStock itemStock) {
+            @PathVariable UUID inventoryId, @RequestBody AddItemToInventoryRequest itemRequest) {
     
         logger.info("Attempting to add item stock to inventory with ID: {}", inventoryId);
-    
+
+        Item item = itemService.getItemByBarcode(itemRequest.getBarCode());
+        ItemProperties itemProperties = new ItemProperties(item, itemRequest.getExpirationDate(), itemRequest.getQuantity());
+        itemPropertiesService.createItemProperties(itemProperties);
+        ItemStock itemStock = new ItemStock(1, itemProperties);
+        itemStockService.saveItemStock(itemStock);
         // Check if the item stock is valid
         if (itemStock == null || itemStock.getQuantity() <= 0) {
             logger.error("Invalid or missing item stock data");
@@ -226,5 +254,132 @@ public class InventoryController {
         return new ResponseEntity<>(updatedInventory, HttpStatus.OK);
     }
     
+    @Operation(summary = "Check if inventory is closed", description = "Check if the inventory is closed by comparing today's date with the closing date of the inventory")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Inventory is closed or not closed", content = @Content(mediaType = "application/json", schema = @Schema(type = "boolean"))),
+            @ApiResponse(responseCode = "404", description = "Inventory not found")
+    })
+    @GetMapping("/{id}/is-closed")
+    public ResponseEntity<Boolean> isInventoryClosed(@PathVariable UUID id) {
+        logger.info("Attempting to check if inventory with ID: {} is closed", id);
+
+        Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(id);
+        if (!inventoryOptional.isPresent()) {
+            logger.error("Inventory not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        Inventory inventory = inventoryOptional.get();
+        LocalDateTime closingDate = inventory.getClosingDate();
+
+        // If closing date is not set, return false (inventory is not closed)
+        if (closingDate == null) {
+            logger.warn("Closing date not set for inventory");
+            return new ResponseEntity<>(false, HttpStatus.OK);
+        }
+
+        // Check if the current date and time is after the closing date
+        boolean isClosed = LocalDateTime.now().isAfter(closingDate);
+        logger.info("Inventory is closed: {}", isClosed);
+
+        return new ResponseEntity<>(isClosed, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Check if inventory should be closed", description = "Check if the inventory should be closed by comparing today's date with the expected closing date of the inventory")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Inventory should be closed or not", content = @Content(mediaType = "application/json", schema = @Schema(type = "boolean"))),
+            @ApiResponse(responseCode = "404", description = "Inventory not found")
+    })
+    @GetMapping("/{id}/should-be-closed")
+    public ResponseEntity<Boolean> isInventoryExpectedToClose(@PathVariable UUID id) {
+        logger.info("Attempting to check if inventory with ID: {} should be closed", id);
+
+        Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(id);
+        if (!inventoryOptional.isPresent()) {
+            logger.error("Inventory not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        Inventory inventory = inventoryOptional.get();
+        LocalDateTime expectedClosingDate = inventory.getExpectedClosingDate();
+
+        // If expected closing date is not set, return false (inventory should not be closed)
+        if (expectedClosingDate == null) {
+            logger.warn("Expected closing date not set for inventory");
+            return new ResponseEntity<>(false, HttpStatus.OK);
+        }
+
+        // Check if today's date is after the expected closing date
+        boolean shouldBeClosed = LocalDateTime.now().isAfter(expectedClosingDate);
+        logger.info("Inventory should be closed: {}", shouldBeClosed);
+
+        return new ResponseEntity<>(shouldBeClosed, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Get open inventories by restaurant", description = "Retrieve all open inventory records associated with a specific restaurant")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Open inventories retrieved successfully"),
+            @ApiResponse(responseCode = "204", description = "No open inventories found"),
+            @ApiResponse(responseCode = "404", description = "Restaurant not found")
+    })
+    @GetMapping("/restaurant/{restaurantId}/open")
+    public ResponseEntity<List<Inventory>> getOpenInventoriesByRestaurant(@PathVariable UUID restaurantId) {
+        logger.info("Attempting to get open inventories by restaurant ID");
+
+        // Check if the restaurant exists
+        Optional<Restaurant> restaurantOptional = restaurantService.getRestaurantById(restaurantId);
+        if (!restaurantOptional.isPresent()) {
+            logger.error("Restaurant not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        Restaurant restaurant = restaurantOptional.get();
+
+        // Fetch all inventories associated with the restaurant
+        List<Inventory> inventories = inventoryService.getInventoriesByRestaurant(restaurant);
+        
+        // Filter inventories that are open (no closing date or closing date in the future)
+        List<Inventory> openInventories = new ArrayList<>();
+        for (Inventory inventory : inventories) {
+            LocalDateTime closingDate = inventory.getClosingDate();
+            
+            // Inventory is open if no closing date is set or if the closing date is in the future
+            if (closingDate == null) {
+                openInventories.add(inventory);
+            }
+        }
+
+        // Return the open inventories
+        if (openInventories.isEmpty()) {
+            logger.info("No open inventories found");
+            return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
+        }
+
+        logger.info("Open inventories found");
+        return new ResponseEntity<>(openInventories, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Close inventory", description = "Close an existing inventory by setting a closing date")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Inventory closed successfully"),
+            @ApiResponse(responseCode = "404", description = "Inventory not found"),
+    })
+    @PutMapping("/{id}/close")
+    public ResponseEntity<Inventory> closeInventory(@PathVariable UUID id, @RequestBody LocalDateTime closingDate) {
+        logger.info("Attempting to close inventory with ID: {}", id);
+
+        Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(id);
+        if (!inventoryOptional.isPresent()) {
+            logger.error("Inventory not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        Inventory inventory = inventoryOptional.get();
+        inventory.setClosingDate(closingDate);
+        Inventory updatedInventory = inventoryService.saveInventory(inventory);
+
+        logger.info("Inventory closed successfully");
+        return new ResponseEntity<>(updatedInventory, HttpStatus.OK);
+    }
 
 }

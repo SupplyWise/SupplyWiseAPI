@@ -75,6 +75,10 @@ public class ItemService {
         itemRepository.deleteById(id);
     }
 
+    public Item getItemByBarcode(int barcode) {
+        return itemRepository.findByBarCode(barcode).orElse(null);
+    }
+
     /* Helper functions */
 
     private boolean isBarCodeValid(int barCode) {
