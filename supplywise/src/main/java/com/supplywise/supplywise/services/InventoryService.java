@@ -1,7 +1,7 @@
 package com.supplywise.supplywise.services;
 
 import com.supplywise.supplywise.model.Inventory;
-import com.supplywise.supplywise.model.ItemStock;
+import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.repositories.InventoryRepository;
 
@@ -49,10 +49,10 @@ public class InventoryService {
             existingInventory.setReport(inventoryDetails.getReport());
             existingInventory.setRestaurant(inventoryDetails.getRestaurant());
     
-            // Clear existing item stocks and re-add the new ones with inventory reference
-            existingInventory.getItemStocks().clear();
-            for (ItemStock itemStock : inventoryDetails.getItemStocks()) {
-                existingInventory.addItemStock(itemStock);
+            // Clear existing item and re-add the new ones with inventory reference
+            existingInventory.getItems().clear();
+            for (ItemProperties itemProperties : inventoryDetails.getItems()) {
+                existingInventory.addItemProperties(itemProperties);
             }
     
             return Optional.of(inventoryRepository.save(existingInventory));

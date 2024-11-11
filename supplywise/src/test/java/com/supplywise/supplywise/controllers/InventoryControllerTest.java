@@ -7,12 +7,10 @@ import com.supplywise.supplywise.DAO.CreateInventoryRequest;
 import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.model.ItemProperties;
-import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.services.InventoryService;
 import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.ItemService;
-import com.supplywise.supplywise.services.ItemStockService;
 import com.supplywise.supplywise.services.RestaurantService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -52,9 +50,6 @@ class InventoryControllerTest {
 
     @Mock
     private ItemPropertiesService itemPropertiesService;
-
-    @Mock
-    private ItemStockService itemStockService;
 
     @InjectMocks
     private InventoryController inventoryController;
@@ -244,7 +239,7 @@ class InventoryControllerTest {
     }
 
     @Test
-    void testAddItemStockToInventory_Success() throws Exception {
+    void testAddItemToInventory_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(inventoryId);
 
@@ -264,17 +259,13 @@ class InventoryControllerTest {
         ItemProperties itemProperties = new ItemProperties(item, itemRequest.getExpirationDate(), itemRequest.getQuantity());
         when(itemPropertiesService.createItemProperties(any(ItemProperties.class))).thenReturn(itemProperties);
 
-        ItemStock itemStock = new ItemStock(1, itemProperties);
-        when(itemStockService.saveItemStock(any(ItemStock.class))).thenReturn(itemStock);
-
-        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
+        mockMvc.perform(post("/api/inventories/" + inventoryId + "/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemRequest)))
                 .andExpect(status().isOk());
 
         verify(itemService, times(1)).getItemByBarcode(itemRequest.getBarCode());
         verify(itemPropertiesService, times(1)).createItemProperties(any(ItemProperties.class));
-        verify(itemStockService, times(1)).saveItemStock(any(ItemStock.class));
         verify(inventoryService, times(1)).saveInventory(any(Inventory.class));
     }
 
@@ -302,7 +293,7 @@ class InventoryControllerTest {
     }
 
     @Test
-    void testAddItemStockToInventory_InventoryNotFound() throws Exception {
+    void testAddItemToInventory_InventoryNotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         AddItemToInventoryRequest itemRequest = new AddItemToInventoryRequest();
         itemRequest.setBarCode(123456); // Insira um código de barras fictício
@@ -312,7 +303,7 @@ class InventoryControllerTest {
         when(itemService.getItemByBarcode(eq(itemRequest.getBarCode()))).thenReturn(item);
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
 
-        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
+        mockMvc.perform(post("/api/inventories/" + inventoryId + "/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemRequest)))
                 .andExpect(status().isNotFound());
@@ -323,18 +314,18 @@ class InventoryControllerTest {
     @Test
     @Disabled
     // eu mudei o código no controller e este teste ja nao se aplica
-    void testAddItemStockToInventory_InvalidItemStockData() throws Exception {
+    void testAddItemToInventory_InvalidItemData() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = new Inventory();
         inventory.setId(inventoryId);
 
-        ItemStock invalidItemStock = new ItemStock();  // No quantity set
+        ItemProperties invalidItem = new ItemProperties();  // No quantity set
 
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
 
-        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
+        mockMvc.perform(post("/api/inventories/" + inventoryId + "/items")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidItemStock)))
+                        .content(objectMapper.writeValueAsString(invalidItem)))
                 .andExpect(status().isBadRequest());
 
         verify(inventoryService, never()).saveInventory(any(Inventory.class));

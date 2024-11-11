@@ -29,7 +29,7 @@ public class Inventory {
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "inventory")
-    private Set<ItemStock> itemStocks = new HashSet<>();
+    private Set<ItemProperties> items = new HashSet<>();
 
     @Column(name = "emission_date", nullable = false)
     private LocalDateTime emissionDate;
@@ -63,12 +63,12 @@ public class Inventory {
         this.expectedClosingDate = null;
     }
 
-    public void addItemStock(ItemStock itemStock) {
-        itemStocks.add(itemStock);
+    public void addItemProperties(ItemProperties item) {
+        items.add(item);
     }
 
-    public void removeItemStock(ItemStock itemStock) {
-        itemStocks.remove(itemStock);
+    public void removeItemProperties(ItemProperties item) {
+        items.remove(item);
     }
 
 }
