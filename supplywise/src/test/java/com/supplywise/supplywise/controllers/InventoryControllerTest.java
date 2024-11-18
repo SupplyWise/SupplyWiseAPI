@@ -8,6 +8,8 @@ import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.model.Restaurant;
+import com.supplywise.supplywise.model.User;
+import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.InventoryService;
 import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.ItemService;
@@ -50,6 +52,9 @@ class InventoryControllerTest {
 
     @Mock
     private ItemPropertiesService itemPropertiesService;
+
+    @Mock
+    private AuthHandler authHandler;
 
     @InjectMocks
     private InventoryController inventoryController;
@@ -571,7 +576,10 @@ class InventoryControllerTest {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
         LocalDateTime closingDate = LocalDateTime.now();
+        User authenticatedUser = new User();
+        authenticatedUser.setId(UUID.randomUUID());
         
+        when(authHandler.getAuthenticatedUser()).thenReturn(authenticatedUser);
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
         when(inventoryService.saveInventory(any(Inventory.class))).thenReturn(inventory);
 
@@ -579,8 +587,18 @@ class InventoryControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(closingDate)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.report").value("Test report"));
+                .andExpect(jsonPath("$.report").value("Test report"))
+                .andExpect(jsonPath("$.closingDate[0]").value(closingDate.getYear())) // Verify year
+                .andExpect(jsonPath("$.closingDate[1]").value(closingDate.getMonthValue())) // Verify month
+                .andExpect(jsonPath("$.closingDate[2]").value(closingDate.getDayOfMonth())) // Verify day
+                .andExpect(jsonPath("$.closingDate[3]").value(closingDate.getHour())) // Verify hour
+                .andExpect(jsonPath("$.closingDate[4]").value(closingDate.getMinute())) // Verify minute
+                .andExpect(jsonPath("$.closingDate[5]").value(closingDate.getSecond())) // Verify second
+                .andExpect(jsonPath("$.closingDate[6]").value(closingDate.getNano())) // Verify nano-second
+                .andExpect(jsonPath("$.closedByUser.id").value(authenticatedUser.getId().toString()));
 
+        verify(authHandler, times(1)).getAuthenticatedUser();
+        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
         verify(inventoryService, times(1)).saveInventory(any(Inventory.class));
     }
 
@@ -589,6 +607,10 @@ class InventoryControllerTest {
         UUID inventoryId = UUID.randomUUID();
         LocalDateTime closingDate = LocalDateTime.now();
         
+        User authenticatedUser = new User();
+        authenticatedUser.setId(UUID.randomUUID());
+        when(authHandler.getAuthenticatedUser()).thenReturn(authenticatedUser);
+
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/api/inventories/" + inventoryId + "/close")
@@ -596,8 +618,26 @@ class InventoryControllerTest {
                 .content(objectMapper.writeValueAsString(closingDate)))
                 .andExpect(status().isNotFound());
 
+        verify(authHandler, times(1)).getAuthenticatedUser();
+        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
         verify(inventoryService, never()).saveInventory(any(Inventory.class));
     }
 
+    @Test
+    void testCloseInventory_Unauthorized() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        LocalDateTime closingDate = LocalDateTime.now();
+
+        when(authHandler.getAuthenticatedUser()).thenReturn(null);
+
+        mockMvc.perform(put("/api/inventories/" + inventoryId + "/close")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(closingDate)))
+                .andExpect(status().isUnauthorized());
+
+        verify(authHandler, times(1)).getAuthenticatedUser();
+        verify(inventoryService, never()).getInventoryById(any());
+        verify(inventoryService, never()).saveInventory(any(Inventory.class));
+    }
 
 }

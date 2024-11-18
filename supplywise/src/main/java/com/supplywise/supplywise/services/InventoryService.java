@@ -48,6 +48,7 @@ public class InventoryService {
             existingInventory.setExpectedClosingDate(inventoryDetails.getExpectedClosingDate());
             existingInventory.setReport(inventoryDetails.getReport());
             existingInventory.setRestaurant(inventoryDetails.getRestaurant());
+            existingInventory.setClosedByUser(inventoryDetails.getClosedByUser());
     
             // Clear existing item and re-add the new ones with inventory reference
             existingInventory.getItems().clear();

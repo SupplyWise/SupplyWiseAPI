@@ -43,6 +43,10 @@ public class Inventory {
     @Column(name = "report")
     private String report;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "closed_by_user_id")
+    private User closedByUser;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -69,6 +73,10 @@ public class Inventory {
 
     public void removeItemProperties(ItemProperties item) {
         items.remove(item);
+    }
+
+    public void setClosedByUser(User user) {
+        this.closedByUser = user;
     }
 
 }

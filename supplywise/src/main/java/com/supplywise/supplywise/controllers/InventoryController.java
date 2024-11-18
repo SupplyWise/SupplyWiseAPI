@@ -6,6 +6,8 @@ import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.model.Restaurant;
+import com.supplywise.supplywise.model.User;
+import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.InventoryService;
 import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.ItemService;
@@ -44,15 +46,16 @@ public class InventoryController {
     private final RestaurantService restaurantService;
     private final ItemService itemService;
     private final ItemPropertiesService itemPropertiesService;
+    private final AuthHandler authHandler;
     private final Logger logger = LoggerFactory.getLogger(InventoryController.class);
 
     @Autowired
-    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService, ItemService itemService, ItemPropertiesService itemPropertiesService) {
+    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService, ItemService itemService, ItemPropertiesService itemPropertiesService, AuthHandler authHandler) {
         this.inventoryService = inventoryService;
         this.restaurantService = restaurantService;
         this.itemService = itemService;
         this.itemPropertiesService = itemPropertiesService;
-        
+        this.authHandler = authHandler;   
     }
 
 
@@ -357,10 +360,17 @@ public class InventoryController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Inventory closed successfully"),
             @ApiResponse(responseCode = "404", description = "Inventory not found"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized to close inventory")
     })
     @PutMapping("/{id}/close")
     public ResponseEntity<Inventory> closeInventory(@PathVariable UUID id, @RequestBody LocalDateTime closingDate) {
         logger.info("Attempting to close inventory with ID: {}", id);
+
+        User currentUser = authHandler.getAuthenticatedUser();
+        if (currentUser == null) {
+            logger.error("No authenticated user found");
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
 
         Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(id);
         if (!inventoryOptional.isPresent()) {
@@ -370,6 +380,7 @@ public class InventoryController {
 
         Inventory inventory = inventoryOptional.get();
         inventory.setClosingDate(closingDate);
+        inventory.setClosedByUser(currentUser);
         Inventory updatedInventory = inventoryService.saveInventory(inventory);
 
         logger.info("Inventory closed successfully");
