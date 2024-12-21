@@ -38,13 +38,26 @@ public class ItemStockService {
         return itemStockRepository.existsById(id);
     }
 
-    // Update an item stock's quantity (other fields stay the same)
+    // Update an item stock's quantity
     public Optional<ItemStock> updateItemStockQuantity(UUID id, int newQuantity) {
         Optional<ItemStock> itemStockOptional = itemStockRepository.findById(id);
 
         if (itemStockOptional.isPresent()) {
             ItemStock itemStock = itemStockOptional.get();
             itemStock.setQuantity(newQuantity);
+            return Optional.of(itemStockRepository.save(itemStock));
+        }
+
+        return Optional.empty();
+    }
+
+    // Update an item stock's minimum quantity
+    public Optional<ItemStock> updateMinimumQuantity(UUID id, int minimumQuantity) {
+        Optional<ItemStock> itemStockOptional = itemStockRepository.findById(id);
+
+        if (itemStockOptional.isPresent()) {
+            ItemStock itemStock = itemStockOptional.get();
+            itemStock.setMinimumQuantity(minimumQuantity);
             return Optional.of(itemStockRepository.save(itemStock));
         }
 

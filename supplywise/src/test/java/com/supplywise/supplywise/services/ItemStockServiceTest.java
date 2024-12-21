@@ -131,6 +131,82 @@ class ItemStockServiceTest {
     }
 
     @Test
+    void testUpdateMinimumQuantity_Exists_ShouldUpdateMinimumQuantity() {
+        // Given
+        UUID itemStockId = UUID.randomUUID();
+        ItemProperties itemProperties = new ItemProperties();
+        ItemStock itemStock = new ItemStock(100, 50, itemProperties);
+        itemStock.setId(itemStockId);
+
+        when(itemStockRepository.findById(itemStockId)).thenReturn(Optional.of(itemStock));
+        when(itemStockRepository.save(any(ItemStock.class))).thenReturn(itemStock);
+
+        // When
+        Optional<ItemStock> result = itemStockService.updateMinimumQuantity(itemStockId, 125);
+
+        // Then
+        assertTrue(result.isPresent());
+        assertEquals(125, result.get().getMinimumQuantity());
+        assertTrue(result.get().isLowStock()); // quantity (100) < minimumQuantity (125)
+        verify(itemStockRepository, times(1)).save(itemStock);
+    }
+
+    @Test
+    void testUpdateMinimumQuantity_NotExists_ShouldReturnEmpty() {
+        // Given
+        UUID itemStockId = UUID.randomUUID();
+        when(itemStockRepository.findById(itemStockId)).thenReturn(Optional.empty());
+
+        // When
+        Optional<ItemStock> result = itemStockService.updateMinimumQuantity(itemStockId, 50);
+
+        // Then
+        assertFalse(result.isPresent());
+        verify(itemStockRepository, never()).save(any(ItemStock.class));
+    }
+
+    @Test
+    void testLowStockFlag_UpdateQuantityBelowMinimum_ShouldSetLowStockTrue() {
+        // Given
+        UUID itemStockId = UUID.randomUUID();
+        ItemProperties itemProperties = new ItemProperties();
+        ItemStock itemStock = new ItemStock(100, 50, itemProperties);
+        itemStock.setId(itemStockId);
+
+        when(itemStockRepository.findById(itemStockId)).thenReturn(Optional.of(itemStock));
+        when(itemStockRepository.save(any(ItemStock.class))).thenReturn(itemStock);
+
+        // When
+        Optional<ItemStock> result = itemStockService.updateItemStockQuantity(itemStockId, 40);
+
+        // Then
+        assertTrue(result.isPresent());
+        assertTrue(result.get().isLowStock());
+        verify(itemStockRepository, times(1)).save(itemStock);
+    }
+
+    @Test
+    void testLowStockFlag_UpdateQuantityAboveMinimum_ShouldSetLowStockFalse() {
+        // Given
+        UUID itemStockId = UUID.randomUUID();
+        ItemProperties itemProperties = new ItemProperties();
+        ItemStock itemStock = new ItemStock(40, 50, itemProperties);
+        itemStock.setId(itemStockId);
+        itemStock.setLowStock(true);
+
+        when(itemStockRepository.findById(itemStockId)).thenReturn(Optional.of(itemStock));
+        when(itemStockRepository.save(any(ItemStock.class))).thenReturn(itemStock);
+
+        // When
+        Optional<ItemStock> result = itemStockService.updateItemStockQuantity(itemStockId, 60);
+
+        // Then
+        assertTrue(result.isPresent());
+        assertFalse(result.get().isLowStock());
+        verify(itemStockRepository, times(1)).save(itemStock);
+    }
+
+    @Test
     void testDeleteItemStockById_Exists_ShouldDelete() {
         // Given
         UUID itemStockId = UUID.randomUUID();

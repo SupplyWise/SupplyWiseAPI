@@ -1,6 +1,8 @@
 package com.supplywise.supplywise.controllers;
 
 import com.supplywise.supplywise.model.ItemStock;
+import com.supplywise.supplywise.model.User;
+import com.supplywise.supplywise.model.Role;
 import com.supplywise.supplywise.services.ItemStockService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -9,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -92,6 +95,36 @@ public class ItemStockController {
         }
 
         logger.info("Item stock quantity updated successfully");
+        return new ResponseEntity<>(updatedItemStock.get(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "Update minimum stock quantity", description = "Update the minimum stock quantity for an item")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Minimum quantity updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Item stock not found"),
+        @ApiResponse(responseCode = "403", description = "User not authorized")
+    })
+    @PutMapping("/{id}/minimum-quantity")
+    public ResponseEntity<ItemStock> updateMinimumQuantity(
+            @PathVariable UUID id,
+            @RequestParam int minimumQuantity,
+            @AuthenticationPrincipal User user) {
+        
+        if (user.getRole() != Role.MANAGER_MASTER) {
+            logger.error("Unauthorized attempt to update minimum quantity");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        logger.info("Attempting to update minimum quantity for item stock");
+
+        Optional<ItemStock> updatedItemStock = itemStockService.updateMinimumQuantity(id, minimumQuantity);
+
+        if (!updatedItemStock.isPresent()) {
+            logger.error("Item stock not found");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        logger.info("Minimum quantity updated successfully");
         return new ResponseEntity<>(updatedItemStock.get(), HttpStatus.OK);
     }
 

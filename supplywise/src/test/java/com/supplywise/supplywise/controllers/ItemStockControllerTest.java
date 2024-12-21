@@ -3,6 +3,8 @@ package com.supplywise.supplywise.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.ItemProperties;
+import com.supplywise.supplywise.model.User;
+import com.supplywise.supplywise.model.Role;
 import com.supplywise.supplywise.services.ItemStockService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,6 +13,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -36,8 +43,16 @@ class ItemStockControllerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(itemStockController).build();
+        AuthenticationPrincipalArgumentResolver resolver = new AuthenticationPrincipalArgumentResolver();
+        mockMvc = MockMvcBuilders.standaloneSetup(itemStockController)
+                .setCustomArgumentResolvers(resolver)
+                .build();
         objectMapper = new ObjectMapper();
+    }
+
+    @BeforeEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -128,6 +143,64 @@ class ItemStockControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(itemStockService, times(1)).updateItemStockQuantity(any(UUID.class), anyInt());
+    }
+
+    @Test
+    void testUpdateMinimumQuantity_ManagerMaster_Success() throws Exception {
+        UUID itemStockId = UUID.randomUUID();
+        ItemProperties itemProperties = new ItemProperties();
+        ItemStock itemStock = new ItemStock(100, 50, itemProperties);
+        itemStock.setId(itemStockId);
+
+        User managerMaster = new User();
+        managerMaster.setRole(Role.MANAGER_MASTER);
+        Authentication auth = new UsernamePasswordAuthenticationToken(managerMaster, null);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        when(itemStockService.updateMinimumQuantity(any(UUID.class), anyInt())).thenReturn(Optional.of(itemStock));
+
+        mockMvc.perform(put("/api/item-stock/" + itemStockId + "/minimum-quantity")
+                        .param("minimumQuantity", "50")
+                        .with(SecurityMockMvcRequestPostProcessors.securityContext(SecurityContextHolder.getContext())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.minimumQuantity").value(50))
+                .andExpect(jsonPath("$.lowStock").value(false));
+
+        verify(itemStockService, times(1)).updateMinimumQuantity(any(UUID.class), anyInt());
+    }
+
+    @Test
+    void testUpdateMinimumQuantity_NonManagerMaster_Forbidden() throws Exception {
+        UUID itemStockId = UUID.randomUUID();
+        User regularUser = new User();
+        regularUser.setRole(Role.MANAGER);
+        Authentication auth = new UsernamePasswordAuthenticationToken(regularUser, null);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        mockMvc.perform(put("/api/item-stock/" + itemStockId + "/minimum-quantity")
+                        .param("minimumQuantity", "50")
+                        .with(SecurityMockMvcRequestPostProcessors.securityContext(SecurityContextHolder.getContext())))
+                .andExpect(status().isForbidden());
+
+        verify(itemStockService, never()).updateMinimumQuantity(any(UUID.class), anyInt());
+    }
+
+    @Test
+    void testUpdateMinimumQuantity_ItemNotFound() throws Exception {
+        UUID itemStockId = UUID.randomUUID();
+        User managerMaster = new User();
+        managerMaster.setRole(Role.MANAGER_MASTER);
+        Authentication auth = new UsernamePasswordAuthenticationToken(managerMaster, null);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        when(itemStockService.updateMinimumQuantity(any(UUID.class), anyInt())).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/api/item-stock/" + itemStockId + "/minimum-quantity")
+                        .param("minimumQuantity", "50")
+                        .with(SecurityMockMvcRequestPostProcessors.securityContext(SecurityContextHolder.getContext())))
+                .andExpect(status().isNotFound());
+
+        verify(itemStockService, times(1)).updateMinimumQuantity(any(UUID.class), anyInt());
     }
 
     @Test
