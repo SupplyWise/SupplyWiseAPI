@@ -14,11 +14,14 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.http.MediaType;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -39,6 +42,8 @@ class ItemPropertiesControllerTest {
     private ObjectMapper objectMapper;
 
     private User authorizedUser;
+    private User managerMasterUser;
+    private User franchiseOwnerUser;
     private User disassociatedUser;
     private ItemProperties itemProperties;
     private UUID itemId;
@@ -46,7 +51,14 @@ class ItemPropertiesControllerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(itemPropertiesController).build();
+
+        LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
+        validator.afterPropertiesSet();
+
+        mockMvc = MockMvcBuilders.standaloneSetup(itemPropertiesController)
+                .setValidator(validator)
+                .build();
+                
         objectMapper = new ObjectMapper();
 
         itemId = UUID.randomUUID();
@@ -55,6 +67,12 @@ class ItemPropertiesControllerTest {
 
         authorizedUser = new User();
         authorizedUser.setRole(Role.MANAGER);
+
+        managerMasterUser = new User();
+        managerMasterUser.setRole(Role.MANAGER_MASTER);
+
+        franchiseOwnerUser = new User();
+        franchiseOwnerUser.setRole(Role.FRANCHISE_OWNER);
 
         disassociatedUser = new User();
         disassociatedUser.setRole(Role.DISASSOCIATED);
@@ -152,5 +170,69 @@ class ItemPropertiesControllerTest {
                 .andExpect(content().string("User is not authorized to delete item properties."));
 
         verify(itemPropertiesService, never()).deleteItemProperties(itemId);
+    }
+
+    @Test
+    void testUpdateMinimumStockQuantity_ManagerMaster() throws Exception {
+        when(authHandler.getAuthenticatedUser()).thenReturn(managerMasterUser);
+        when(itemPropertiesService.updateMinimumStockQuantity(eq(itemId), eq(10)))
+                .thenReturn(itemProperties);
+
+        mockMvc.perform(put("/api/item-properties/{id}/minimum-stock", itemId)
+                .param("minimumStock", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(itemId.toString()));
+
+        verify(itemPropertiesService, times(1)).updateMinimumStockQuantity(itemId, 10);
+    }
+
+    @Test
+    void testUpdateMinimumStockQuantity_FranchiseOwner() throws Exception {
+        when(authHandler.getAuthenticatedUser()).thenReturn(franchiseOwnerUser);
+        when(itemPropertiesService.updateMinimumStockQuantity(eq(itemId), eq(10)))
+                .thenReturn(itemProperties);
+
+        mockMvc.perform(put("/api/item-properties/{id}/minimum-stock", itemId)
+                .param("minimumStock", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(itemId.toString()));
+
+        verify(itemPropertiesService, times(1)).updateMinimumStockQuantity(itemId, 10);
+    }
+
+    @Test
+    void testUpdateMinimumStockQuantity_UnauthorizedUser() throws Exception {
+        when(authHandler.getAuthenticatedUser()).thenReturn(authorizedUser);
+
+        mockMvc.perform(put("/api/item-properties/{id}/minimum-stock", itemId)
+                .param("minimumStock", "10"))
+                .andExpect(status().isForbidden())
+                .andExpect(content().string("Only MANAGER_MASTER or FRANCHISE_OWNER users can update minimum stock quantity."));
+
+        verify(itemPropertiesService, never()).updateMinimumStockQuantity(any(), any());
+    }
+
+    @Test
+    void testUpdateMinimumStockQuantity_NegativeValue() throws Exception {
+        when(authHandler.getAuthenticatedUser()).thenReturn(managerMasterUser);
+
+        mockMvc.perform(put("/api/item-properties/{id}/minimum-stock", itemId)
+                .param("minimumStock", "-1"))
+                .andExpect(status().isBadRequest());
+
+        verify(itemPropertiesService, never()).updateMinimumStockQuantity(any(), any());
+    }
+
+    @Test
+    void testUpdateMinimumStockQuantity_ItemNotFound() throws Exception {
+        when(authHandler.getAuthenticatedUser()).thenReturn(managerMasterUser);
+        when(itemPropertiesService.updateMinimumStockQuantity(eq(itemId), eq(10)))
+                .thenReturn(null);
+
+        mockMvc.perform(put("/api/item-properties/{id}/minimum-stock", itemId)
+                .param("minimumStock", "10"))
+                .andExpect(status().isNotFound());
+
+        verify(itemPropertiesService, times(1)).updateMinimumStockQuantity(itemId, 10);
     }
 }

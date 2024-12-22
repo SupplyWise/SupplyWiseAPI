@@ -34,9 +34,14 @@ public class ItemProperties {
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
+    @Min(value = 0, message = "Minimum stock quantity cannot be negative")
+    @Column(name = "minimum_stock_quantity", nullable = false)
+    private Integer minimumStockQuantity = 0;
+
     public ItemProperties(Item item, LocalDate expirationDate, Integer quantity) {
         this.item = item;
         this.expirationDate = expirationDate;
         this.quantity = quantity;
+        this.minimumStockQuantity = 0;
     }
 }

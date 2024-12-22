@@ -56,6 +56,22 @@ public class ItemPropertiesService {
         return itemPropertiesRepository.save(itemPropertiesToUpdate);
     }
 
+    public ItemProperties updateMinimumStockQuantity(UUID id, Integer minimumStock) {
+        if (minimumStock < 0) {
+            throw new IllegalArgumentException("Minimum stock quantity cannot be negative");
+        }
+
+        ItemProperties itemProperties = itemPropertiesRepository.findById(id)
+                .orElse(null);
+        
+        if (itemProperties == null) {
+            return null;
+        }
+
+        itemProperties.setMinimumStockQuantity(minimumStock);
+        return itemPropertiesRepository.save(itemProperties);
+    }
+
     /* Helper functions */
 
     private boolean isItemPropertiesValid(ItemProperties itemProperties) {
