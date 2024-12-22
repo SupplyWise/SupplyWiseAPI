@@ -37,6 +37,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import com.supplywise.supplywise.services.FileService;
+import org.springframework.web.multipart.MultipartFile;
+
+
 @RestController
 @RequestMapping("/api/inventories")
 @Tag(name = "Inventory Controller", description = "API for managing inventory")
@@ -47,14 +51,16 @@ public class InventoryController {
     private final ItemService itemService;
     private final ItemPropertiesService itemPropertiesService;
     private final AuthHandler authHandler;
+    private final FileService fileService;
     private final Logger logger = LoggerFactory.getLogger(InventoryController.class);
 
     @Autowired
-    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService, ItemService itemService, ItemPropertiesService itemPropertiesService, AuthHandler authHandler) {
+    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService, ItemService itemService, ItemPropertiesService itemPropertiesService, FileService fileService, AuthHandler authHandler) {
         this.inventoryService = inventoryService;
         this.restaurantService = restaurantService;
         this.itemService = itemService;
         this.itemPropertiesService = itemPropertiesService;
+        this.fileService = fileService;
         this.authHandler = authHandler;   
     }
 
@@ -385,6 +391,30 @@ public class InventoryController {
 
         logger.info("Inventory closed successfully");
         return new ResponseEntity<>(updatedInventory, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Upload inventory file", description = "Upload a CSV file for inventory processing")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "File uploaded successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid file format")
+    })
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadInventoryFile(@RequestParam("file") MultipartFile file) {
+        logger.info("Attempting to upload inventory file");
+
+        if (file.isEmpty() || !file.getOriginalFilename().endsWith(".csv")) {
+            logger.error("Invalid file format");
+            return ResponseEntity.badRequest().body("Invalid file format. Only .csv files are allowed.");
+        }
+
+        try {
+            String s3Url = fileService.uploadFileToS3(file);
+            logger.info("File uploaded to S3 successfully");
+            return ResponseEntity.ok("File uploaded successfully. S3 URL: " + s3Url);
+        } catch (Exception e) {
+            logger.error("Error uploading file to S3", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error uploading file");
+        }
     }
 
 }
