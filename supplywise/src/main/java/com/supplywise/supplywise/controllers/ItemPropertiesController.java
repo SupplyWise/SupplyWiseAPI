@@ -112,7 +112,11 @@ public class ItemPropertiesController {
     @PutMapping("/{id}/minimum-stock")
     public ResponseEntity<?> updateMinimumStockQuantity(
             @PathVariable UUID id,
-            @RequestParam @Min(0) Integer minimumStock) {
+            @RequestParam Integer minimumStock) {
+        
+        if (minimumStock < 0) {
+            return ResponseEntity.badRequest().body("Minimum stock must be non-negative");
+        }
         
         logger.info("Attempting to update minimum stock quantity for item properties ID: {}", id);
 

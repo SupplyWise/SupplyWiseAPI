@@ -106,11 +106,11 @@
 			<artifactId>jackson-datatype-jsr310</artifactId>
 		</dependency>
 
-		<dependency>
+		<!-- <dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-validator</artifactId>
 			<version>7.0.2.Final</version>
-		</dependency>
+		</dependency> -->
 	</dependencies>
 
 	<build>
