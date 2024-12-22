@@ -7,12 +7,12 @@ import com.supplywise.supplywise.DAO.CreateInventoryRequest;
 import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.model.ItemProperties;
-import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.Restaurant;
+import com.supplywise.supplywise.model.User;
+import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.InventoryService;
 import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.ItemService;
-import com.supplywise.supplywise.services.ItemStockService;
 import com.supplywise.supplywise.services.RestaurantService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -54,7 +54,7 @@ class InventoryControllerTest {
     private ItemPropertiesService itemPropertiesService;
 
     @Mock
-    private ItemStockService itemStockService;
+    private AuthHandler authHandler;
 
     @InjectMocks
     private InventoryController inventoryController;
@@ -199,6 +199,60 @@ class InventoryControllerTest {
     }
 
     @Test
+    void testGetItemsByInventoryId_Success() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = createInventory(UUID.randomUUID());
+        
+        Item item1 = new Item();
+        item1.setId(UUID.randomUUID());
+        item1.setName("Test Item 1");
+        
+        Item item2 = new Item();
+        item2.setId(UUID.randomUUID());
+        item2.setName("Test Item 2");
+        
+        ItemProperties itemProperties1 = new ItemProperties(item1, LocalDate.now().plusMonths(6), 10);
+        ItemProperties itemProperties2 = new ItemProperties(item2, LocalDate.now().plusMonths(6), 20);
+        
+        inventory.addItemProperties(itemProperties1);
+        inventory.addItemProperties(itemProperties2);
+
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+
+        mockMvc.perform(get("/api/inventories/" + inventoryId + "/items")
+                .param("page", "0")
+                .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.totalElements").value(2));
+    }
+
+    @Test
+    void testGetItemsByInventoryId_NoItems() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = createInventory(UUID.randomUUID());
+        
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+
+        mockMvc.perform(get("/api/inventories/" + inventoryId + "/items")
+                .param("page", "0")
+                .param("size", "10"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void testGetItemsByInventoryId_InventoryNotFound() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/inventories/" + inventoryId + "/items")
+                .param("page", "0")
+                .param("size", "10"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void testDeleteInventoryById_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(new Inventory()));
@@ -244,7 +298,64 @@ class InventoryControllerTest {
     }
 
     @Test
-    void testAddItemStockToInventory_Success() throws Exception {
+    void testUpdateInventory_InvalidRestaurant() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        UUID restaurantId = UUID.randomUUID();
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(restaurantId);
+
+        Inventory inventory = createInventory(restaurantId);
+        inventory.setId(inventoryId);
+
+        when(restaurantService.restaurantExistsById(restaurantId)).thenReturn(false);
+
+        mockMvc.perform(put("/api/inventories/" + inventoryId)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(inventory)))
+                .andExpect(status().isBadRequest());
+
+        verify(inventoryService, never()).updateInventory(any(), any());
+    }
+
+    @Test
+    void testUpdateInventory_NullRestaurant() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = createInventory(UUID.randomUUID());
+        inventory.setId(inventoryId);
+        inventory.setRestaurant(null);
+
+        mockMvc.perform(put("/api/inventories/" + inventoryId)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(inventory)))
+                .andExpect(status().isBadRequest());
+
+        verify(inventoryService, never()).updateInventory(any(), any());
+    }
+
+    @Test
+    void testUpdateInventory_UpdateFailed() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        UUID restaurantId = UUID.randomUUID();
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(restaurantId);
+
+        Inventory inventory = createInventory(restaurantId);
+        inventory.setId(inventoryId);
+
+        when(restaurantService.restaurantExistsById(restaurantId)).thenReturn(true);
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.updateInventory(eq(inventoryId), any(Inventory.class))).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/api/inventories/" + inventoryId)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(inventory)))
+                .andExpect(status().isInternalServerError());
+
+        verify(inventoryService, times(1)).updateInventory(eq(inventoryId), any(Inventory.class));
+    }
+
+    @Test
+    void testAddItemToInventory_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(inventoryId);
 
@@ -264,17 +375,13 @@ class InventoryControllerTest {
         ItemProperties itemProperties = new ItemProperties(item, itemRequest.getExpirationDate(), itemRequest.getQuantity());
         when(itemPropertiesService.createItemProperties(any(ItemProperties.class))).thenReturn(itemProperties);
 
-        ItemStock itemStock = new ItemStock(1, itemProperties);
-        when(itemStockService.saveItemStock(any(ItemStock.class))).thenReturn(itemStock);
-
-        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
+        mockMvc.perform(post("/api/inventories/" + inventoryId + "/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemRequest)))
                 .andExpect(status().isOk());
 
         verify(itemService, times(1)).getItemByBarcode(itemRequest.getBarCode());
         verify(itemPropertiesService, times(1)).createItemProperties(any(ItemProperties.class));
-        verify(itemStockService, times(1)).saveItemStock(any(ItemStock.class));
         verify(inventoryService, times(1)).saveInventory(any(Inventory.class));
     }
 
@@ -302,7 +409,7 @@ class InventoryControllerTest {
     }
 
     @Test
-    void testAddItemStockToInventory_InventoryNotFound() throws Exception {
+    void testAddItemToInventory_InventoryNotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         AddItemToInventoryRequest itemRequest = new AddItemToInventoryRequest();
         itemRequest.setBarCode(123456); // Insira um código de barras fictício
@@ -312,30 +419,10 @@ class InventoryControllerTest {
         when(itemService.getItemByBarcode(eq(itemRequest.getBarCode()))).thenReturn(item);
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
 
-        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
+        mockMvc.perform(post("/api/inventories/" + inventoryId + "/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemRequest)))
                 .andExpect(status().isNotFound());
-
-        verify(inventoryService, never()).saveInventory(any(Inventory.class));
-    }
-
-    @Test
-    @Disabled
-    // eu mudei o código no controller e este teste ja nao se aplica
-    void testAddItemStockToInventory_InvalidItemStockData() throws Exception {
-        UUID inventoryId = UUID.randomUUID();
-        Inventory inventory = new Inventory();
-        inventory.setId(inventoryId);
-
-        ItemStock invalidItemStock = new ItemStock();  // No quantity set
-
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
-
-        mockMvc.perform(post("/api/inventories/" + inventoryId + "/item-stocks")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidItemStock)))
-                .andExpect(status().isBadRequest());
 
         verify(inventoryService, never()).saveInventory(any(Inventory.class));
     }
@@ -367,6 +454,21 @@ class InventoryControllerTest {
     }
 
     @Test
+    void testIsInventoryClosed_NoClosingDate() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = createInventory(UUID.randomUUID());
+        inventory.setClosingDate(null);
+
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+
+        mockMvc.perform(get("/api/inventories/" + inventoryId + "/is-closed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value(false));
+
+        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+    }
+
+    @Test
     void testIsInventoryExpectedToClose_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
@@ -388,6 +490,21 @@ class InventoryControllerTest {
 
         mockMvc.perform(get("/api/inventories/" + inventoryId + "/should-be-closed"))
                 .andExpect(status().isNotFound());
+
+        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+    }
+
+    @Test
+    void testIsInventoryExpectedToClose_NoExpectedClosingDate() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = createInventory(UUID.randomUUID());
+        inventory.setExpectedClosingDate(null);
+
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+
+        mockMvc.perform(get("/api/inventories/" + inventoryId + "/should-be-closed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value(false));
 
         verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
     }
@@ -454,5 +571,73 @@ class InventoryControllerTest {
         verify(inventoryService, never()).getInventoriesByRestaurant(any(Restaurant.class));
     }
 
+    @Test
+    void testCloseInventory_Success() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        Inventory inventory = createInventory(UUID.randomUUID());
+        LocalDateTime closingDate = LocalDateTime.now();
+        User authenticatedUser = new User();
+        authenticatedUser.setId(UUID.randomUUID());
+        
+        when(authHandler.getAuthenticatedUser()).thenReturn(authenticatedUser);
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.saveInventory(any(Inventory.class))).thenReturn(inventory);
+
+        mockMvc.perform(put("/api/inventories/" + inventoryId + "/close")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(closingDate)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.report").value("Test report"))
+                .andExpect(jsonPath("$.closingDate[0]").value(closingDate.getYear())) // Verify year
+                .andExpect(jsonPath("$.closingDate[1]").value(closingDate.getMonthValue())) // Verify month
+                .andExpect(jsonPath("$.closingDate[2]").value(closingDate.getDayOfMonth())) // Verify day
+                .andExpect(jsonPath("$.closingDate[3]").value(closingDate.getHour())) // Verify hour
+                .andExpect(jsonPath("$.closingDate[4]").value(closingDate.getMinute())) // Verify minute
+                .andExpect(jsonPath("$.closingDate[5]").value(closingDate.getSecond())) // Verify second
+                .andExpect(jsonPath("$.closingDate[6]").value(closingDate.getNano())) // Verify nano-second
+                .andExpect(jsonPath("$.closedByUser.id").value(authenticatedUser.getId().toString()));
+
+        verify(authHandler, times(1)).getAuthenticatedUser();
+        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).saveInventory(any(Inventory.class));
+    }
+
+    @Test
+    void testCloseInventory_NotFound() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        LocalDateTime closingDate = LocalDateTime.now();
+        
+        User authenticatedUser = new User();
+        authenticatedUser.setId(UUID.randomUUID());
+        when(authHandler.getAuthenticatedUser()).thenReturn(authenticatedUser);
+
+        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/api/inventories/" + inventoryId + "/close")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(closingDate)))
+                .andExpect(status().isNotFound());
+
+        verify(authHandler, times(1)).getAuthenticatedUser();
+        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, never()).saveInventory(any(Inventory.class));
+    }
+
+    @Test
+    void testCloseInventory_Unauthorized() throws Exception {
+        UUID inventoryId = UUID.randomUUID();
+        LocalDateTime closingDate = LocalDateTime.now();
+
+        when(authHandler.getAuthenticatedUser()).thenReturn(null);
+
+        mockMvc.perform(put("/api/inventories/" + inventoryId + "/close")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(closingDate)))
+                .andExpect(status().isUnauthorized());
+
+        verify(authHandler, times(1)).getAuthenticatedUser();
+        verify(inventoryService, never()).getInventoryById(any());
+        verify(inventoryService, never()).saveInventory(any(Inventory.class));
+    }
 
 }

@@ -5,12 +5,12 @@ import com.supplywise.supplywise.DAO.CreateInventoryRequest;
 import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.model.ItemProperties;
-import com.supplywise.supplywise.model.ItemStock;
 import com.supplywise.supplywise.model.Restaurant;
+import com.supplywise.supplywise.model.User;
+import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.InventoryService;
 import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.ItemService;
-import com.supplywise.supplywise.services.ItemStockService;
 import com.supplywise.supplywise.services.RestaurantService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,18 +45,17 @@ public class InventoryController {
     private final InventoryService inventoryService;
     private final RestaurantService restaurantService;
     private final ItemService itemService;
-    private final ItemStockService itemStockService;
     private final ItemPropertiesService itemPropertiesService;
+    private final AuthHandler authHandler;
     private final Logger logger = LoggerFactory.getLogger(InventoryController.class);
 
     @Autowired
-    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService, ItemService itemService, ItemStockService itemStockService, ItemPropertiesService itemPropertiesService) {
+    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService, ItemService itemService, ItemPropertiesService itemPropertiesService, AuthHandler authHandler) {
         this.inventoryService = inventoryService;
         this.restaurantService = restaurantService;
         this.itemService = itemService;
-        this.itemStockService = itemStockService;
         this.itemPropertiesService = itemPropertiesService;
-        
+        this.authHandler = authHandler;   
     }
 
 
@@ -131,37 +130,37 @@ public class InventoryController {
         return new ResponseEntity<>(inventories, HttpStatus.OK);
     }
 
-    @Operation(summary = "Get paginated item stocks by inventory ID", description = "Retrieve paginated item stocks associated with a specific inventory")
+    @Operation(summary = "Get paginated items by inventory ID", description = "Retrieve paginated items associated with a specific inventory")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Item stocks retrieved successfully"),
-            @ApiResponse(responseCode = "204", description = "No item stocks found")
+            @ApiResponse(responseCode = "200", description = "Itema retrieved successfully"),
+            @ApiResponse(responseCode = "204", description = "No items found")
     })
-    @GetMapping("/{inventoryId}/item-stocks")
-    public ResponseEntity<Page<ItemStock>> getItemStocksByInventoryId(
+    @GetMapping("/{inventoryId}/items")
+    public ResponseEntity<Page<ItemProperties>> getItemsByInventoryId(
             @PathVariable UUID inventoryId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        logger.info("Attempting to get paginated item stocks by inventory ID");
+        logger.info("Attempting to get paginated items by inventory ID");
 
         Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(inventoryId);
         if (inventoryOptional.isPresent()) {
-            Set<ItemStock> itemStocks = inventoryOptional.get().getItemStocks();
+            Set<ItemProperties> items = inventoryOptional.get().getItems();
             
             // convert Set to List and apply pagination
-            List<ItemStock> itemStockList = new ArrayList<>(itemStocks);
-            int start = Math.min((int)PageRequest.of(page, size).getOffset(), itemStockList.size());
-            int end = Math.min((start + size), itemStockList.size());
+            List<ItemProperties> itemsList = new ArrayList<>(items);
+            int start = Math.min((int)PageRequest.of(page, size).getOffset(), itemsList.size());
+            int end = Math.min((start + size), itemsList.size());
             
             if (start < end) {
-                List<ItemStock> paginatedItemStocks = itemStockList.subList(start, end);
-                Page<ItemStock> itemStockPage = new PageImpl<>(paginatedItemStocks, PageRequest.of(page, size), itemStockList.size());
-                logger.info("Item stocks found");
-                return new ResponseEntity<>(itemStockPage, HttpStatus.OK);
+                List<ItemProperties> paginatedItems = itemsList.subList(start, end);
+                Page<ItemProperties> itemsPage = new PageImpl<>(paginatedItems, PageRequest.of(page, size), itemsList.size());
+                logger.info("Items found");
+                return new ResponseEntity<>(itemsPage, HttpStatus.OK);
             }
         }
 
-        logger.error("No item stocks found");
+        logger.error("No items found");
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
@@ -216,26 +215,24 @@ public class InventoryController {
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @Operation(summary = "Add item stock to inventory", description = "Add a new item stock to an existing inventory")
+    @Operation(summary = "Add item to inventory", description = "Add a new item to an existing inventory")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Item stock added successfully"),
+            @ApiResponse(responseCode = "200", description = "Item added successfully"),
             @ApiResponse(responseCode = "404", description = "Inventory not found"),
-            @ApiResponse(responseCode = "400", description = "Invalid item stock data")
+            @ApiResponse(responseCode = "400", description = "Invalid item data")
     })
-    @PostMapping("/{inventoryId}/item-stocks")
-    public ResponseEntity<Inventory> addItemStockToInventory(
+    @PostMapping("/{inventoryId}/items")
+    public ResponseEntity<Inventory> addItemToInventory(
             @PathVariable UUID inventoryId, @RequestBody AddItemToInventoryRequest itemRequest) {
     
-        logger.info("Attempting to add item stock to inventory with ID: {}", inventoryId);
+        logger.info("Attempting to add item to inventory with ID: {}", inventoryId);
 
         Item item = itemService.getItemByBarcode(itemRequest.getBarCode());
         ItemProperties itemProperties = new ItemProperties(item, itemRequest.getExpirationDate(), itemRequest.getQuantity());
         itemPropertiesService.createItemProperties(itemProperties);
-        ItemStock itemStock = new ItemStock(1, itemProperties);
-        itemStockService.saveItemStock(itemStock);
-        // Check if the item stock is valid
-        if (itemStock == null || itemStock.getQuantity() <= 0) {
-            logger.error("Invalid or missing item stock data");
+        // Check if the item is valid
+        if (itemProperties == null || itemProperties.getQuantity() <= 0) {
+            logger.error("Invalid or missing item data");
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     
@@ -247,10 +244,10 @@ public class InventoryController {
         }
     
         Inventory inventory = inventoryOptional.get();
-        inventory.addItemStock(itemStock);
+        inventory.addItemProperties(itemProperties);
         Inventory updatedInventory = inventoryService.saveInventory(inventory);
     
-        logger.info("Item stock added successfully to inventory");
+        logger.info("Item added successfully to inventory");
         return new ResponseEntity<>(updatedInventory, HttpStatus.OK);
     }
     
@@ -363,10 +360,17 @@ public class InventoryController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Inventory closed successfully"),
             @ApiResponse(responseCode = "404", description = "Inventory not found"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized to close inventory")
     })
     @PutMapping("/{id}/close")
     public ResponseEntity<Inventory> closeInventory(@PathVariable UUID id, @RequestBody LocalDateTime closingDate) {
         logger.info("Attempting to close inventory with ID: {}", id);
+
+        User currentUser = authHandler.getAuthenticatedUser();
+        if (currentUser == null) {
+            logger.error("No authenticated user found");
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
 
         Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(id);
         if (!inventoryOptional.isPresent()) {
@@ -376,6 +380,7 @@ public class InventoryController {
 
         Inventory inventory = inventoryOptional.get();
         inventory.setClosingDate(closingDate);
+        inventory.setClosedByUser(currentUser);
         Inventory updatedInventory = inventoryService.saveInventory(inventory);
 
         logger.info("Inventory closed successfully");
