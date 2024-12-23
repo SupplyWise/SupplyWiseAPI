@@ -172,7 +172,7 @@ class ItemPropertiesServiceTest {
         when(itemPropertiesRepository.save(any(ItemProperties.class))).thenReturn(updatedItemProperties);
 
         // Execute the method
-        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties);
+        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties, true); // Assuming user can edit min stock
 
         // Verify that the itemProperties is updated and saved
         verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
@@ -182,6 +182,24 @@ class ItemPropertiesServiceTest {
         assertEquals(item, result.getItem());
         assertEquals(LocalDate.of(2026, 12, 31), result.getExpirationDate());
         assertEquals(200, result.getQuantity());
+    }
+
+    @Test
+    void testUpdateItemProperties_InvalidItem_ShouldReturnNull() {
+        // Generate a random UUID for the itemProperties
+        UUID itemPropertiesId = UUID.randomUUID();
+        
+        // Mock the repository to return null when the itemProperties is not found
+        when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.empty());
+
+        // Execute the method
+        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, new ItemProperties(), true);
+
+        // Verify that null is returned when itemProperties is not found
+        assertNull(result);
+
+        // Verify that the findById method was called
+        verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
     }
 
     @Test
