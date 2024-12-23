@@ -44,4 +44,10 @@ public class ItemProperties {
         this.quantity = quantity;
         this.minimumStockQuantity = 0;
     }
+
+    public void updateFields(Item item, LocalDate expirationDate, Integer quantity) {
+        if (item != null) this.item = item;
+        if (expirationDate != null) this.expirationDate = expirationDate;
+        if (quantity != null) this.quantity = quantity;
+    }
 }

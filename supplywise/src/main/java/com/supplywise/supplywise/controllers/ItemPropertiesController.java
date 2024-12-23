@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.validation.constraints.Min;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,40 +101,47 @@ public class ItemPropertiesController {
         return ResponseEntity.ok(itemProperties);
     }
 
-    @Operation(summary = "Update minimum stock quantity")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Minimum stock quantity updated successfully"),
-            @ApiResponse(responseCode = "403", description = "User is not authorized to update minimum stock quantity"),
-            @ApiResponse(responseCode = "404", description = "Item properties not found"),
-            @ApiResponse(responseCode = "400", description = "Invalid minimum stock quantity")
-    })
-    @PutMapping("/{id}/minimum-stock")
-    public ResponseEntity<?> updateMinimumStockQuantity(
-            @PathVariable UUID id,
-            @RequestParam Integer minimumStock) {
-        
-        if (minimumStock < 0) {
-            return ResponseEntity.badRequest().body("Minimum stock must be non-negative");
-        }
-        
-        logger.info("Attempting to update minimum stock quantity for item properties ID: {}", id);
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateItemProperties(
+            @PathVariable UUID id, 
+            @RequestBody ItemProperties itemProperties) {
+
+        logger.info("Attempting to update item properties for ID: {}", id);
 
         User authenticatedUser = authHandler.getAuthenticatedUser();
-        if (!(authenticatedUser.getRole() == Role.MANAGER_MASTER || authenticatedUser.getRole() == Role.FRANCHISE_OWNER)) {
-            logger.error("User is not authorized to update minimum stock quantity");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Only MANAGER_MASTER or FRANCHISE_OWNER users can update minimum stock quantity.");
+
+        if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
+            logger.error("User is not authorized to update item properties");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to update item properties.");
+        }
+
+        // Validate required fields for all users
+        if (itemProperties.getExpirationDate() == null || itemProperties.getQuantity() == null || itemProperties.getItem() == null) {
+            logger.error("Item properties fields are missing or invalid");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Item properties fields are missing or invalid.");
+        }
+
+        // Only update minimum stock if the user has the necessary permissions
+        if (authenticatedUser.getRole() != Role.MANAGER_MASTER && authenticatedUser.getRole() != Role.FRANCHISE_OWNER) {
+            logger.info("User does not have permission to update minimum stock quantities, leaving it unchanged");
+            itemProperties.setMinimumStockQuantity(null); // Do not update minimumStockQuantity
         }
 
         try {
-            ItemProperties updatedProperties = itemPropertiesService.updateMinimumStockQuantity(id, minimumStock);
-            if (updatedProperties == null) {
-                return ResponseEntity.notFound().build();
+            boolean canEditMinimumStock = (authenticatedUser.getRole() == Role.MANAGER_MASTER || authenticatedUser.getRole() == Role.FRANCHISE_OWNER);
+            ItemProperties updatedItemProperties = itemPropertiesService.updateItemProperties(id, itemProperties, canEditMinimumStock);
+
+            if (updatedItemProperties == null) {
+                logger.error("Item properties not found with ID: {}", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Item properties not found.");
             }
-            logger.info("Minimum stock quantity updated successfully for ID: {}", id);
-            return ResponseEntity.ok(updatedProperties);
+
+            logger.info("Item properties updated successfully with ID: {}", id);
+            logger.info("Item properties: " + updatedItemProperties);
+            return ResponseEntity.ok(updatedItemProperties);
+
         } catch (IllegalArgumentException e) {
-            logger.error("Invalid minimum stock quantity: {}", e.getMessage());
+            logger.error("Invalid item properties: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
