@@ -21,9 +21,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger logger_ = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
@@ -43,13 +48,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             JWTClaimsSet claims = CognitoTokenValidator.getClaims(jwt);
             String username = claims.getSubject(); // Cognito username
 
+            logger_.info("Authenticated user: {}", username);
+            logger_.info(claims.toString());
+
             List<String> roles = null;
             String companyId = null;
             String restaurantId = null;
             try {
                 roles = claims.getStringListClaim("cognito:groups"); // Cognito groups
-                companyId = claims.getStringClaim("custom:company_id");
-                restaurantId = claims.getStringClaim("custom:restaurant_id");
+                companyId = claims.getStringClaim("company_id");
+                restaurantId = claims.getStringClaim("restaurant_id");
             } catch (ParseException e) {
                 e.printStackTrace();
             }
@@ -67,7 +75,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 );
 
                 authToken.setDetails(customDetails);
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                //authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContext context = SecurityContextHolder.createEmptyContext();
                 context.setAuthentication(authToken);
                 SecurityContextHolder.setContext(context);

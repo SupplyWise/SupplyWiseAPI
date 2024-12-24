@@ -20,4 +20,8 @@ public class CompanyService {
     public boolean companyExists(UUID id) {
         return companyRepository.existsById(id);
     }
+
+    public Company getCompanyById(UUID id) {
+        return companyRepository.findById(id).orElse(null);
+    }
 }

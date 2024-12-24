@@ -48,7 +48,7 @@ public class RestaurantController {
         @ApiResponse(responseCode = "400", description = "Invalid restaurant data")
     })
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
-    @PostMapping("/")
+    @PostMapping
     public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant) {
         logger.info("Attempting to create a new restaurant");
 
@@ -155,6 +155,7 @@ public class RestaurantController {
         logger.info("Attempting to get restaurants for the authenticated user");
 
         UUID companyId = UUID.fromString(authHandler.getAuthenticatedCompanyId());
+        logger.info("Company ID: " + companyId);
 
         List<Restaurant> restaurants = restaurantService.getRestaurantsByCompanyId(companyId);
         if (restaurants.isEmpty()) {

@@ -1,11 +1,8 @@
 package com.supplywise.supplywise.controllers;
 
 import com.supplywise.supplywise.model.Company;
-import com.supplywise.supplywise.model.Role;
-import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.services.CompanyService;
 import com.supplywise.supplywise.services.AuthHandler;
-import com.supplywise.supplywise.services.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -39,9 +36,6 @@ public class CompanyController {
     @Autowired
     private AuthHandler authHandler;
 
-    @Autowired
-    private UserService userService;
-
     private final Logger logger = LoggerFactory.getLogger(CompanyController.class);
 
     @Operation(summary = "Create a new company", description = "Create a new company with the given name")
@@ -56,8 +50,7 @@ public class CompanyController {
         logger.info("Attempting to create a new company");
 
         String cognitoSub = authHandler.getAuthenticatedCognitoSub();
-        logger.info("Cognito sub: " + cognitoSub);
-
+        
         // Create a new company
         Company company = new Company(name, cognitoSub);
         companyService.createCompany(company);
@@ -107,7 +100,7 @@ public class CompanyController {
         logger.info("Attempting to fetch company details by ID");
 
         // Check if company exists
-        Company company = userService.getCompanyDetails(id);
+        Company company = companyService.getCompanyById(id);
         if (company == null) {
             logger.error("Company not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Company ID does not exist.");
@@ -130,16 +123,16 @@ public class CompanyController {
         logger.info("Attempting to fetch company details");
 
         // Get the authenticated user's company id
-        UUID companyId = UUID.fromString(authHandler.getAuthenticatedCompanyId());
+        UUID id = UUID.fromString(authHandler.getAuthenticatedCompanyId());
 
         // Check if company exists
-        Company company = userService.getCompanyDetails(companyId);
+        Company company = companyService.getCompanyById(id);
         if (company == null) {
             logger.error("Company not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Company ID does not exist.");
         }
 
         logger.info("Company details fetched successfully");
-        return ResponseEntity.ok(company);
+        return ResponseEntity.status(HttpStatus.OK).body(company);
     }
 }

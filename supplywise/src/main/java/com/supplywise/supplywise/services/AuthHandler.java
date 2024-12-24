@@ -9,8 +9,13 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class AuthHandler {
+
+    private final Logger logger = LoggerFactory.getLogger(AuthHandler.class);
 
     public String getAuthenticatedCognitoSub() {
         // Extract Cognito sub from custom authentication details
@@ -52,6 +57,7 @@ public class AuthHandler {
     private CustomAuthenticationDetails getCustomAuthenticationDetails() {
         // Safely extract custom details from SecurityContext
         Object details = SecurityContextHolder.getContext().getAuthentication().getDetails();
+        logger.info("Details: {}", details);
         if (details instanceof CustomAuthenticationDetails customAuthenticationDetails) {
             return customAuthenticationDetails;
         }
