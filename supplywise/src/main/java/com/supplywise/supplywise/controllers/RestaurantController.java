@@ -3,6 +3,7 @@ package com.supplywise.supplywise.controllers;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.model.Company;
 import com.supplywise.supplywise.services.RestaurantService;
+import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.CompanyService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,12 +32,14 @@ public class RestaurantController {
 
     private final RestaurantService restaurantService;
     private final CompanyService companyService;
+    private final AuthHandler authHandler;
     private final Logger logger = LoggerFactory.getLogger(RestaurantController.class);
 
     @Autowired
-    public RestaurantController(RestaurantService restaurantService, CompanyService companyService) {
+    public RestaurantController(RestaurantService restaurantService, CompanyService companyService, AuthHandler authHandler) {
         this.restaurantService = restaurantService;
         this.companyService = companyService;
+        this.authHandler = authHandler;
     }
 
     @Operation(summary = "Create a new restaurant", description = "Create a new restaurant for a company")
@@ -66,6 +69,7 @@ public class RestaurantController {
                      content = @Content(mediaType = "application/json", schema = @Schema(implementation = Restaurant.class))),
         @ApiResponse(responseCode = "404", description = "Restaurant not found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
     @GetMapping("/{id}")
     public ResponseEntity<Restaurant> getRestaurantById(@PathVariable UUID id) {
         logger.info("Attempting to get restaurant by ID");
@@ -84,6 +88,7 @@ public class RestaurantController {
         @ApiResponse(responseCode = "200", description = "Restaurant updated successfully"),
         @ApiResponse(responseCode = "404", description = "Restaurant not found")
     })
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<Restaurant> updateRestaurant(@PathVariable UUID id, @RequestBody String newName) {
         logger.info("Attempting to update restaurant name");
@@ -104,6 +109,7 @@ public class RestaurantController {
         @ApiResponse(responseCode = "200", description = "Restaurant deleted successfully"),
         @ApiResponse(responseCode = "404", description = "Restaurant not found")
     })
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRestaurantById(@PathVariable UUID id) {
         logger.info("Attempting to delete restaurant by ID");
@@ -123,9 +129,32 @@ public class RestaurantController {
         @ApiResponse(responseCode = "200", description = "Restaurants retrieved successfully"),
         @ApiResponse(responseCode = "204", description = "No restaurants found")
     })
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/company/{companyId}")
     public ResponseEntity<List<Restaurant>> getRestaurantsByCompanyId(@PathVariable UUID companyId) {
         logger.info("Attempting to get restaurants by company ID");
+
+        List<Restaurant> restaurants = restaurantService.getRestaurantsByCompanyId(companyId);
+        if (restaurants.isEmpty()) {
+            logger.error("No restaurants found");
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
+        logger.info("Restaurants found");
+        return new ResponseEntity<>(restaurants, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Get all restaurants", description = "Retrieve all restaurants associated with the authenticated user")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Restaurants retrieved successfully"),
+        @ApiResponse(responseCode = "204", description = "No restaurants found")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
+    @GetMapping("/company")
+    public ResponseEntity<List<Restaurant>> getRestaurants() {
+        logger.info("Attempting to get restaurants for the authenticated user");
+
+        UUID companyId = UUID.fromString(authHandler.getAuthenticatedCompanyId());
 
         List<Restaurant> restaurants = restaurantService.getRestaurantsByCompanyId(companyId);
         if (restaurants.isEmpty()) {
