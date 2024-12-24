@@ -52,8 +52,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (username != null && roles != null) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    username, null, roles.stream()
-                        .map(role -> new SimpleGrantedAuthority(role.toUpperCase()))
+                    username, jwt, roles.stream()
+                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
                         .toList()
                 );
 

@@ -11,8 +11,12 @@ import java.util.List;
 @Component
 public class AuthHandler {
 
-    public String getAuthenticatedUsername() {
+    public String getAuthenticatedCognitoSub() {
         return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    public String getAuthenticatedAccessToken() {
+        return (String) SecurityContextHolder.getContext().getAuthentication().getCredentials();
     }
 
     public List<String> getAuthenticatedUserRoles() {

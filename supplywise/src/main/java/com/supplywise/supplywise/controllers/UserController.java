@@ -2,6 +2,7 @@ package com.supplywise.supplywise.controllers;
 
 import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.model.Role;
+import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,6 +40,9 @@ public class UserController {
         this.userService = userService;
     }
 
+    @Autowired
+    private AuthHandler authHandler;
+
     // Test to check if the backend is correctly handling Cognito tokens
     @GetMapping("/test")
     public ResponseEntity<String> test() {
@@ -48,6 +52,8 @@ public class UserController {
     @GetMapping("/test-franchise_owner")
     @PreAuthorize("hasRole('ROLE_FRANCHISE_OWNER')")
     public ResponseEntity<String> testFranchiseOwner() {
+        logger.info(authHandler.getAuthenticatedCognitoSub());
+        logger.info(authHandler.getAuthenticatedAccessToken());
         return new ResponseEntity<>("Test successful", HttpStatus.OK);
     }
 

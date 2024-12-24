@@ -15,7 +15,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,36 +49,48 @@ public class CompanyController {
             @ApiResponse(responseCode = "201", description = "Company created successfully"),
             @ApiResponse(responseCode = "403", description = "User is not eligible to create a company")
     })
+    @PreAuthorize("hasRole('ROLE_DISASSOCIATED')")
     @PostMapping("/create")
-    public ResponseEntity<String> createCompany(@RequestParam String name) {
+    public ResponseEntity<Object> createCompany(@RequestParam String name) {
 
         logger.info("Attempting to create a new company");
 
-        User user = authHandler.getAuthenticatedUser();
-
-        // Check if user is eligible to create a company
-        if (user.getRole() != Role.DISASSOCIATED) {
-            logger.error("User is not eligible to create a company");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not eligible to create a company.");
-        }
+        String cognitoSub = authHandler.getAuthenticatedCognitoSub();
 
         // Create a new company
-        Company company = new Company(name, user.getId());
+        Company company = new Company(name, cognitoSub);
         companyService.createCompany(company);
         logger.info("Company created successfully");
 
-        // Update user company
-        user.setCompany(company);
-        userService.updateUser(user.getId(), user);
-        logger.info("User company updated");
+        // Make a request to a Lambda function that will promote the user to FRANCHISE_OWNER, and update the user's company
+        // The URL: https://zo9bnne4ec.execute-api.eu-west-1.amazonaws.com/dev/user-management/promote_to_owner
+        // Send the company ID in the request body as JSON
+        try {
+            String url = "https://zo9bnne4ec.execute-api.eu-west-1.amazonaws.com/dev/user-management/promote_to_owner";
+            HttpClient client = HttpClient.newHttpClient();
+            String requestBody = String.format("{\"company_id\": \"%s\"}", company.getId().toString());
+            HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .header("Authorization", "Bearer " + authHandler.getAuthenticatedAccessToken())
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+            .build();
 
-        // Update user role to FRANCHISE_OWNER
-        user.setRole(Role.FRANCHISE_OWNER);
-        userService.updateUser(user.getId(), user);
-        logger.info("Role updated to FRANCHISE_OWNER");
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Company created successfully. Role updated to FRANCHISE_OWNER.");
+            if (response.statusCode() != 200) {
+                logger.error("Failed to promote user to FRANCHISE_OWNER");
+                // Details about the error can be found in the request response
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response.body());
+            }
+
+            logger.info("User promoted to FRANCHISE_OWNER successfully");
+        } catch (Exception e) {
+            logger.error("Exception occurred while promoting user to FRANCHISE_OWNER", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to promote user to FRANCHISE_OWNER.");
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(company);
     }
 
     @Operation(summary = "Get company details", description = "Get the details of a company by its ID")
