@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,7 @@ public class RestaurantController {
         @ApiResponse(responseCode = "201", description = "Restaurant created successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid restaurant data")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
     @PostMapping("/")
     public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant) {
         logger.info("Attempting to create a new restaurant");

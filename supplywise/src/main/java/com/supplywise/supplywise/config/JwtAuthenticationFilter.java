@@ -44,8 +44,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String username = claims.getSubject(); // Cognito username
 
             List<String> roles = null;
+            String companyId = null;
+            String restaurantId = null;
             try {
                 roles = claims.getStringListClaim("cognito:groups"); // Cognito groups
+                companyId = claims.getStringClaim("custom:company_id");
+                restaurantId = claims.getStringClaim("custom:restaurant_id");
             } catch (ParseException e) {
                 e.printStackTrace();
             }
@@ -57,6 +61,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         .toList()
                 );
 
+                // Add custom attributes to the authentication details
+                CustomAuthenticationDetails customDetails = new CustomAuthenticationDetails(
+                    username, companyId, restaurantId, roles
+                );
+
+                authToken.setDetails(customDetails);
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContext context = SecurityContextHolder.createEmptyContext();
                 context.setAuthentication(authToken);
