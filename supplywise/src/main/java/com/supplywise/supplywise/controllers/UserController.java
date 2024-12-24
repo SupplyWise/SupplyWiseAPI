@@ -39,6 +39,18 @@ public class UserController {
         this.userService = userService;
     }
 
+    // Test to check if the backend is correctly handling Cognito tokens
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return new ResponseEntity<>("Test successful", HttpStatus.OK);
+    }
+
+    @GetMapping("/test-franchise_owner")
+    @PreAuthorize("hasRole('ROLE_FRANCHISE_OWNER')")
+    public ResponseEntity<String> testFranchiseOwner() {
+        return new ResponseEntity<>("Test successful", HttpStatus.OK);
+    }
+
     @Operation(summary = "Get user by email", description = "Retrieve a user by their email address")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User found", 

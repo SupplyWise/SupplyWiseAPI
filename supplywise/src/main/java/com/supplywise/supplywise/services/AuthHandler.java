@@ -1,27 +1,31 @@
 package com.supplywise.supplywise.services;
 
 import com.supplywise.supplywise.model.User;
+
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class AuthHandler {
 
-    private final UserService userService;
-
-    public AuthHandler(UserService userService) {
-        this.userService = userService;
+    public String getAuthenticatedUsername() {
+        return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 
-    // Method to retrieve the authenticated user
+    public List<String> getAuthenticatedUserRoles() {
+        return SecurityContextHolder.getContext()
+            .getAuthentication()
+            .getAuthorities()
+            .stream()
+            .map(GrantedAuthority::getAuthority)
+            .toList();
+    }
+
+    // Temp function to avoid compilation errors
     public User getAuthenticatedUser() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        if (principal == null || !(principal instanceof UserDetails)) {
-            return null;
-        }
-
-        return userService.findByEmailUser(((UserDetails) principal).getUsername());
+        return null;
     }
 }
