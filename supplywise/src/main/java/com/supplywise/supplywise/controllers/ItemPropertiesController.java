@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,16 +41,11 @@ public class ItemPropertiesController {
             @ApiResponse(responseCode = "400", description = "Item properties is not valid"),
             @ApiResponse(responseCode = "403", description = "User is not authorized to create item properties")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @PostMapping("/create")
     public ResponseEntity<?> createItemProperties(@RequestBody ItemProperties itemProperties) {
         logger.info("Attempting to create item properties");
-
-        User authenticatedUser = authHandler.getAuthenticatedUser();
-        if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
-            logger.error("User is not authorized to create item properties");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to create item properties.");
-        }
-
+        
         try {
             ItemProperties createdItemProperties = itemPropertiesService.createItemProperties(itemProperties);
             logger.info("Item properties created successfully with ID: {}", createdItemProperties.getId());
@@ -79,15 +75,10 @@ public class ItemPropertiesController {
             @ApiResponse(responseCode = "403", description = "User is not authorized to fetch item properties"),
             @ApiResponse(responseCode = "404", description = "Item properties ID does not exist")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @GetMapping("/{id}")
     public ResponseEntity<?> getItemPropertiesById(@Parameter(description = "ID of the item properties to be fetched") @PathVariable UUID id) {
         logger.info("Attempting to fetch item properties with ID: {}", id);
-
-        User authenticatedUser = authHandler.getAuthenticatedUser();
-        if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
-            logger.error("User is not authorized to fetch item properties");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to fetch item properties.");
-        }
 
         ItemProperties itemProperties = itemPropertiesService.getItemPropertiesById(id);
 
@@ -105,15 +96,10 @@ public class ItemPropertiesController {
             @ApiResponse(responseCode = "204", description = "Item properties deleted successfully"),
             @ApiResponse(responseCode = "403", description = "User is not authorized to delete item properties")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteItemProperties(@Parameter(description = "ID of the item properties to be deleted") @PathVariable UUID id) {
         logger.info("Attempting to delete item properties with ID: {}", id);
-
-        User authenticatedUser = authHandler.getAuthenticatedUser();
-        if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
-            logger.error("User is not authorized to delete item properties");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to delete item properties.");
-        }
 
         itemPropertiesService.deleteItemProperties(id);
         logger.info("Item properties deleted successfully with ID: {}", id);

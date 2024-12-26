@@ -30,6 +30,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +66,8 @@ public class InventoryController {
             @ApiResponse(responseCode = "201", description = "Inventory created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid inventory data")
     })
-    @PostMapping("/")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MASTER')")
+    @PostMapping
     public ResponseEntity<Inventory> createInventory(@RequestBody CreateInventoryRequest createInventoryRequest) {
         logger.info("Attempting to create a new inventory");
 
@@ -92,6 +95,7 @@ public class InventoryController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Inventory.class))),
             @ApiResponse(responseCode = "404", description = "Inventory not found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MASTER')")
     @GetMapping("/{id}")
     public ResponseEntity<Inventory> getInventoryById(@PathVariable UUID id) {
         logger.info("Attempting to get inventory by ID");
@@ -110,6 +114,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "200", description = "Inventories retrieved successfully"),
             @ApiResponse(responseCode = "204", description = "No inventories found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @GetMapping("/restaurant/{restaurantId}")
     public ResponseEntity<List<Inventory>> getInventoriesByRestaurant(@PathVariable UUID restaurantId) {
         logger.info("Attempting to get inventories by restaurant ID");
@@ -135,6 +140,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "200", description = "Itema retrieved successfully"),
             @ApiResponse(responseCode = "204", description = "No items found")
     })
+    
     @GetMapping("/{inventoryId}/items")
     public ResponseEntity<Page<ItemProperties>> getItemsByInventoryId(
             @PathVariable UUID inventoryId,
@@ -363,20 +369,17 @@ public class InventoryController {
             @ApiResponse(responseCode = "403", description = "Unauthorized to close inventory")
     })
     @PutMapping("/{id}/close")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MASTER')")
     public ResponseEntity<Inventory> closeInventory(@PathVariable UUID id, @RequestBody LocalDateTime closingDate) {
         logger.info("Attempting to close inventory with ID: {}", id);
-
-        User currentUser = authHandler.getAuthenticatedUser();
-        if (currentUser == null) {
-            logger.error("No authenticated user found");
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         Optional<Inventory> inventoryOptional = inventoryService.getInventoryById(id);
         if (!inventoryOptional.isPresent()) {
             logger.error("Inventory not found");
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+
+        String currentUser = authHandler.getAuthenticatedCognitoSub();
 
         Inventory inventory = inventoryOptional.get();
         inventory.setClosingDate(closingDate);

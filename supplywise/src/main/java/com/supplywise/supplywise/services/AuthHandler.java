@@ -49,6 +49,12 @@ public class AuthHandler {
         return details != null ? details.getRestaurantId() : null;
     }
 
+    public String getAuthenticatedUsername() {
+        // Extract username from custom authentication details
+        CustomAuthenticationDetails details = getCustomAuthenticationDetails();
+        return details != null ? details.getUsername() : null;
+    }
+
     // Temporary function to avoid compilation errors
     public User getAuthenticatedUser() {
         return null;
@@ -58,6 +64,7 @@ public class AuthHandler {
         // Safely extract custom details from SecurityContext
         Object details = SecurityContextHolder.getContext().getAuthentication().getDetails();
         logger.info("Details: {}", details);
+        
         if (details instanceof CustomAuthenticationDetails customAuthenticationDetails) {
             return customAuthenticationDetails;
         }
