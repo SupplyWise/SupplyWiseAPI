@@ -1,6 +1,5 @@
 package com.supplywise.supplywise.services;
 
-import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.config.CustomAuthenticationDetails;
 
 import org.springframework.security.core.GrantedAuthority;
@@ -53,11 +52,6 @@ public class AuthHandler {
         // Extract username from custom authentication details
         CustomAuthenticationDetails details = getCustomAuthenticationDetails();
         return details != null ? details.getUsername() : null;
-    }
-
-    // Temporary function to avoid compilation errors
-    public User getAuthenticatedUser() {
-        return null;
     }
 
     private CustomAuthenticationDetails getCustomAuthenticationDetails() {

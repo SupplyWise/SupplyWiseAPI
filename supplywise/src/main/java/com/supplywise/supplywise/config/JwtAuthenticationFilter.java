@@ -9,7 +9,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -49,7 +48,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String username = claims.getSubject(); // Cognito username
 
             logger_.info("Authenticated user: {}", username);
-            logger_.info(claims.toString());
 
             List<String> roles = null;
             String companyId = null;
@@ -75,7 +73,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 );
 
                 authToken.setDetails(customDetails);
-                //authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContext context = SecurityContextHolder.createEmptyContext();
                 context.setAuthentication(authToken);
                 SecurityContextHolder.setContext(context);

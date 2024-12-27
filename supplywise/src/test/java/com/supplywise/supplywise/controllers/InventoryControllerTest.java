@@ -8,24 +8,30 @@ import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.model.Restaurant;
-import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.InventoryService;
 import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.ItemService;
 import com.supplywise.supplywise.services.RestaurantService;
+import com.supplywise.supplywise.config.JwtAuthenticationFilter;
+import com.supplywise.supplywise.config.SecurityConfiguration;
+
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -36,24 +42,27 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
+@WebMvcTest(InventoryController.class)
+@Import({SecurityConfiguration.class, JwtAuthenticationFilter.class})
+@AutoConfigureMockMvc(addFilters = true)
 class InventoryControllerTest {
 
+    @Autowired
     private MockMvc mockMvc;
 
-    @Mock
+    @MockBean
     private InventoryService inventoryService;
 
-    @Mock
+    @MockBean
     private RestaurantService restaurantService;
 
-    @Mock
+    @MockBean
     private ItemService itemService;
 
-    @Mock
+    @MockBean
     private ItemPropertiesService itemPropertiesService;
 
-    @Mock
+    @MockBean
     private AuthHandler authHandler;
 
     @InjectMocks
@@ -64,7 +73,6 @@ class InventoryControllerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(inventoryController).build();
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
     }
@@ -93,6 +101,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testCreateInventory_Success() throws Exception {
         UUID restaurantId = UUID.randomUUID();
         CreateInventoryRequest request = createInventoryRequest(restaurantId);
@@ -103,7 +112,7 @@ class InventoryControllerTest {
         when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.of(restaurant));
         when(inventoryService.saveInventory(any(Inventory.class))).thenReturn(inventory);
 
-        mockMvc.perform(post("/api/inventories/")
+        mockMvc.perform(post("/api/inventories")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -113,13 +122,14 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testCreateInventory_InvalidRestaurant() throws Exception {
         UUID restaurantId = UUID.randomUUID();
         CreateInventoryRequest request = createInventoryRequest(restaurantId);
 
         when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.empty());
 
-        mockMvc.perform(post("/api/inventories/")
+        mockMvc.perform(post("/api/inventories")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -128,6 +138,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetInventoryById_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = new Inventory();
@@ -144,6 +155,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetInventoryById_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
@@ -155,6 +167,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetInventoriesByRestaurant_Success() throws Exception {
         UUID restaurantId = UUID.randomUUID();
         Restaurant restaurant = new Restaurant();
@@ -173,6 +186,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetInventoriesByRestaurant_RestaurantNotFound() throws Exception {
         UUID restaurantId = UUID.randomUUID();
         when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.empty());
@@ -184,6 +198,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetInventoriesByRestaurant_NoContent() throws Exception {
         UUID restaurantId = UUID.randomUUID();
         Restaurant restaurant = new Restaurant();
@@ -199,6 +214,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetItemsByInventoryId_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
@@ -228,6 +244,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetItemsByInventoryId_NoItems() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
@@ -241,6 +258,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetItemsByInventoryId_InventoryNotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         
@@ -253,6 +271,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testDeleteInventoryById_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(new Inventory()));
@@ -264,6 +283,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testDeleteInventoryById_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
@@ -275,6 +295,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testUpdateInventory_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         UUID restaurantId = UUID.randomUUID();
@@ -298,6 +319,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testUpdateInventory_InvalidRestaurant() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         UUID restaurantId = UUID.randomUUID();
@@ -318,6 +340,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testUpdateInventory_NullRestaurant() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
@@ -333,6 +356,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testUpdateInventory_UpdateFailed() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         UUID restaurantId = UUID.randomUUID();
@@ -355,6 +379,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testAddItemToInventory_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(inventoryId);
@@ -386,6 +411,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testUpdateInventory_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         UUID restaurantId = UUID.randomUUID();
@@ -409,6 +435,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testAddItemToInventory_InventoryNotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         AddItemToInventoryRequest itemRequest = new AddItemToInventoryRequest();
@@ -428,6 +455,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testIsInventoryClosed_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
@@ -443,6 +471,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testIsInventoryClosed_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
@@ -454,6 +483,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testIsInventoryClosed_NoClosingDate() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
@@ -469,6 +499,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testIsInventoryExpectedToClose_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
@@ -484,6 +515,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testIsInventoryExpectedToClose_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
@@ -495,6 +527,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testIsInventoryExpectedToClose_NoExpectedClosingDate() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
@@ -510,6 +543,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetOpenInventoriesByRestaurant_Success() throws Exception {
         UUID restaurantId = UUID.randomUUID();
         Restaurant restaurant = new Restaurant();
@@ -535,6 +569,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetOpenInventoriesByRestaurant_NoOpenInventories() throws Exception {
         UUID restaurantId = UUID.randomUUID();
         Restaurant restaurant = new Restaurant();
@@ -559,6 +594,7 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetOpenInventoriesByRestaurant_RestaurantNotFound() throws Exception {
         UUID restaurantId = UUID.randomUUID();
         
@@ -572,72 +608,65 @@ class InventoryControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testCloseInventory_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
-        LocalDateTime closingDate = LocalDateTime.now();
-        User authenticatedUser = new User();
-        authenticatedUser.setId(UUID.randomUUID());
-        
-        when(authHandler.getAuthenticatedUser()).thenReturn(authenticatedUser);
+        LocalDateTime closingDate = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
+        // Mock service methods
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
         when(inventoryService.saveInventory(any(Inventory.class))).thenReturn(inventory);
+        when(authHandler.getAuthenticatedCognitoSub()).thenReturn("cognito-sub-example");
 
         mockMvc.perform(put("/api/inventories/" + inventoryId + "/close")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(closingDate)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.report").value("Test report"))
-                .andExpect(jsonPath("$.closingDate[0]").value(closingDate.getYear())) // Verify year
-                .andExpect(jsonPath("$.closingDate[1]").value(closingDate.getMonthValue())) // Verify month
-                .andExpect(jsonPath("$.closingDate[2]").value(closingDate.getDayOfMonth())) // Verify day
-                .andExpect(jsonPath("$.closingDate[3]").value(closingDate.getHour())) // Verify hour
-                .andExpect(jsonPath("$.closingDate[4]").value(closingDate.getMinute())) // Verify minute
-                .andExpect(jsonPath("$.closingDate[5]").value(closingDate.getSecond())) // Verify second
-                .andExpect(jsonPath("$.closingDate[6]").value(closingDate.getNano())) // Verify nano-second
-                .andExpect(jsonPath("$.closedByUser.id").value(authenticatedUser.getId().toString()));
+                .andExpect(jsonPath("$.closingDate").value(closingDate.toString())) // Truncate nanoseconds
+                .andExpect(jsonPath("$.closedByUser").value("cognito-sub-example"));
 
-        verify(authHandler, times(1)).getAuthenticatedUser();
+        // Verify service calls
         verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
         verify(inventoryService, times(1)).saveInventory(any(Inventory.class));
     }
 
+
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testCloseInventory_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         LocalDateTime closingDate = LocalDateTime.now();
-        
-        User authenticatedUser = new User();
-        authenticatedUser.setId(UUID.randomUUID());
-        when(authHandler.getAuthenticatedUser()).thenReturn(authenticatedUser);
 
+        // Mock the repository to simulate inventory not found
         when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
 
+        // Perform the request with the mock token
         mockMvc.perform(put("/api/inventories/" + inventoryId + "/close")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(closingDate)))
                 .andExpect(status().isNotFound());
 
-        verify(authHandler, times(1)).getAuthenticatedUser();
+        // Verify service calls
         verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
         verify(inventoryService, never()).saveInventory(any(Inventory.class));
     }
 
+
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"DISASSOCIATED"})
     void testCloseInventory_Unauthorized() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         LocalDateTime closingDate = LocalDateTime.now();
-
-        when(authHandler.getAuthenticatedUser()).thenReturn(null);
-
+    
         mockMvc.perform(put("/api/inventories/" + inventoryId + "/close")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(closingDate)))
-                .andExpect(status().isUnauthorized());
-
-        verify(authHandler, times(1)).getAuthenticatedUser();
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(closingDate)))
+            .andExpect(status().isForbidden());
+    
+        // Verify that no inventory service method was called
         verify(inventoryService, never()).getInventoryById(any());
         verify(inventoryService, never()).saveInventory(any(Inventory.class));
-    }
+    }    
 
 }

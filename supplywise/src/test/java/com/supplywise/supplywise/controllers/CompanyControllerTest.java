@@ -1,13 +1,11 @@
 package com.supplywise.supplywise.controllers;
 
+import com.supplywise.supplywise.config.JwtAuthenticationFilter;
 import com.supplywise.supplywise.config.SecurityConfiguration;
 import com.supplywise.supplywise.model.Company;
-import com.supplywise.supplywise.model.Role;
-import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.CompanyService;
-import com.supplywise.supplywise.services.JwtService;
-import com.supplywise.supplywise.services.UserService;
+import com.supplywise.supplywise.services.CognitoUtils;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,11 +13,11 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -29,11 +27,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @WebMvcTest(CompanyController.class)
-@Import(SecurityConfiguration.class) // Ensure that security configuration is loaded - DO NOT REMOVE
+@Import({SecurityConfiguration.class, JwtAuthenticationFilter.class})
+@AutoConfigureMockMvc(addFilters = true)
 class CompanyControllerTest {
 
     @Autowired
@@ -43,13 +41,10 @@ class CompanyControllerTest {
     private CompanyService companyService;
 
     @MockBean
-    private JwtService jwtService;
-
-    @MockBean
-    private UserService userService;
-
-    @MockBean
     private AuthHandler authHandler;
+
+    @MockBean
+    private CognitoUtils cognitoUtils;
 
     @InjectMocks
     private CompanyController companyController;
@@ -60,99 +55,55 @@ class CompanyControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser", roles = { "DISASSOCIATED" })
+    @WithMockUser(username = "cognito-sub-example", roles = {"DISASSOCIATED"})
     void testCreateCompany_Success() throws Exception {
-        // Mock the authenticated user
-        User user = new User();
-        user.setId(UUID.randomUUID());
-        user.setRole(Role.DISASSOCIATED);
-        when(authHandler.getAuthenticatedUser()).thenReturn(user);
 
         // Mock the company creation
         String companyName = "TechCorp";
         Company company = new Company();
         company.setName(companyName);
         when(companyService.createCompany(any(Company.class))).thenReturn(company);
+        when(authHandler.getAuthenticatedCompanyId()).thenReturn("mock-company-id");
+        when(cognitoUtils.promoteDisassociatedToOwner(any(Company.class))).thenReturn(null);
 
-        // Mock the user update
-        User updatedUser = new User();
-        updatedUser.setId(UUID.randomUUID());
-        updatedUser.setRole(Role.FRANCHISE_OWNER); // Role should be updated
-        when(userService.updateUser(any(UUID.class), any(User.class))).thenReturn(Optional.of(updatedUser));
-
-        // Make the request and check if it returns CREATED (201)
+        // Perform the request with the mocked JWT token
         mockMvc.perform(post("/api/company/create")
-                .param("name", companyName)
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isCreated())
-                .andExpect(content().string("Company created successfully. Role updated to FRANCHISE_OWNER."));
+            .param("name", companyName)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.name").value(companyName));
     }
 
 
     @Test
-    @WithMockUser(username = "testuser", roles = { "FRANCHISE_OWNER" })
-    void testCreateCompany_IneligibleUser() throws Exception {
+    @WithMockUser(username = "cognito-sub-example", roles = {"FRANCHISE_OWNER"})
+    void testCreateCompany_IneligibleUser_WithJWT() throws Exception {
         String companyName = "TechCorp";
-        
-        // Mock an authenticated user with an ineligible role
-        User user = new User();
-        user.setId(UUID.randomUUID());
-        user.setRole(Role.FRANCHISE_OWNER); // Not allowed to create a company
-        when(authHandler.getAuthenticatedUser()).thenReturn(user);
 
-        // Make the request and check if it returns FORBIDDEN (403)
+        // Make the request with the mocked token
         mockMvc.perform(post("/api/company/create")
                 .param("name", companyName)
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isForbidden())
-                .andExpect(content().string("User is not eligible to create a company."));
+                .andExpect(status().isForbidden());
     }
 
+
     @Test
-    @WithMockUser(username = "testuser", roles = {"MANAGER"})
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetCompanyDetails_UserIsManager_ShouldReturnCompanyDetails() throws Exception {
+        // Create mock company data
         Company company = new Company();
         company.setId(UUID.randomUUID());
         company.setName("Company Name");
-
-        User user = new User();
-        user.setId(UUID.randomUUID());
-        user.setCompany(company);
-
-        // Mock the repository
-        when(authHandler.getAuthenticatedUser()).thenReturn(user);
-        when(userService.getCompanyDetails(company.getId())).thenReturn(company);
-
-        // Make the request and check if it returns the company name
-        mockMvc.perform(get("/api/company/details/" + company.getId())
+        
+        // Mock the auth handler to return the companyId (authHandler.getAuthenticatedCompanyId())
+        when(authHandler.getAuthenticatedCompanyId()).thenReturn(company.getId().toString());
+        when(companyService.getCompanyById(company.getId())).thenReturn(company);
+    
+        // Make the request with the mock token
+        mockMvc.perform(get("/api/company/details")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().string(company.toString()));
-    }
-
-    @Test
-    @WithMockUser(username = "testuser", roles = {"MANAGER"})
-    void testGetCompanyDetails_UserDoesNotBelongToCompany_ShouldReturnForbidden() throws Exception {
-        Company company = new Company();
-        company.setId(UUID.randomUUID());
-        company.setName("Company Name");
-
-        Company otherCompany = new Company();
-        otherCompany.setId(UUID.randomUUID());
-
-        User user = new User();
-        user.setId(UUID.randomUUID());
-        user.setCompany(otherCompany);
-
-        // Mock the repository
-        when(authHandler.getAuthenticatedUser()).thenReturn(user);
-        when(userService.getCompanyDetails(company.getId())).thenReturn(company);
-
-        // Make the request and check if it returns FORBIDDEN (403)
-        mockMvc.perform(get("/api/company/details/" + company.getId())
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isForbidden())
-                .andExpect(content().string("User is not eligible to view company details."));
-    }
-
+                .andExpect(jsonPath("$.id").value(company.getId().toString()));
+            }
 }

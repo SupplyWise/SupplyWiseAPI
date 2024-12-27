@@ -78,4 +78,7 @@ public class Inventory {
         this.closedByUser = user;
     }
 
+    public String getClosedByUser() {
+        return closedByUser;
+    }
 }

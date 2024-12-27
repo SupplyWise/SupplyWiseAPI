@@ -3,8 +3,6 @@ package com.supplywise.supplywise.controllers;
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.AuthHandler;
-import com.supplywise.supplywise.model.User;
-import com.supplywise.supplywise.model.Role;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -45,7 +43,7 @@ public class ItemPropertiesController {
     @PostMapping("/create")
     public ResponseEntity<?> createItemProperties(@RequestBody ItemProperties itemProperties) {
         logger.info("Attempting to create item properties");
-        
+
         try {
             ItemProperties createdItemProperties = itemPropertiesService.createItemProperties(itemProperties);
             logger.info("Item properties created successfully with ID: {}", createdItemProperties.getId());
@@ -60,6 +58,7 @@ public class ItemPropertiesController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Fetched all item properties successfully")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @GetMapping
     public ResponseEntity<List<ItemProperties>> getAllItemProperties() {
         logger.info("Fetching all item properties");

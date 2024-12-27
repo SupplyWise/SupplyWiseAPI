@@ -15,6 +15,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.List;
 import java.util.Collections;
 
@@ -44,6 +46,12 @@ public class SecurityConfiguration {
                 .requestMatchers("/api/item-properties/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER")
                 .requestMatchers("/api/item/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER")
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(handler -> handler
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.getWriter().write(accessDeniedException.getMessage());
+                })
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);    

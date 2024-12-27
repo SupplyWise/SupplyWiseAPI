@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws java.io.IOException, jakarta.servlet.ServletException {
         // Log request details
         log.info("Incoming request: Method={}, URI={}", request.getMethod(), request.getRequestURI());
 
@@ -37,6 +37,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } catch (Exception e) {
             log.error("Error processing the request: {}", e.getMessage(), e);
+            throw e; // Propagate the exception
         }
     }
 }

@@ -6,7 +6,6 @@ import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.model.Restaurant;
-import com.supplywise.supplywise.model.User;
 import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.InventoryService;
 import com.supplywise.supplywise.services.ItemPropertiesService;
@@ -66,7 +65,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "201", description = "Inventory created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid inventory data")
     })
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MASTER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @PostMapping
     public ResponseEntity<Inventory> createInventory(@RequestBody CreateInventoryRequest createInventoryRequest) {
         logger.info("Attempting to create a new inventory");
@@ -95,7 +94,7 @@ public class InventoryController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Inventory.class))),
             @ApiResponse(responseCode = "404", description = "Inventory not found")
     })
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MASTER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @GetMapping("/{id}")
     public ResponseEntity<Inventory> getInventoryById(@PathVariable UUID id) {
         logger.info("Attempting to get inventory by ID");
@@ -369,7 +368,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "403", description = "Unauthorized to close inventory")
     })
     @PutMapping("/{id}/close")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MASTER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     public ResponseEntity<Inventory> closeInventory(@PathVariable UUID id, @RequestBody LocalDateTime closingDate) {
         logger.info("Attempting to close inventory with ID: {}", id);
 

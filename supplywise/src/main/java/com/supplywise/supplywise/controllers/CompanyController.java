@@ -3,6 +3,7 @@ package com.supplywise.supplywise.controllers;
 import com.supplywise.supplywise.model.Company;
 import com.supplywise.supplywise.services.CompanyService;
 import com.supplywise.supplywise.services.AuthHandler;
+import com.supplywise.supplywise.services.CognitoUtils;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,6 +35,9 @@ public class CompanyController {
     private CompanyService companyService;
 
     @Autowired
+    private CognitoUtils cognitoUtils;
+
+    @Autowired
     private AuthHandler authHandler;
 
     private final Logger logger = LoggerFactory.getLogger(CompanyController.class);
@@ -59,29 +63,9 @@ public class CompanyController {
         // Make a request to a Lambda function that will promote the user to FRANCHISE_OWNER, and update the user's company
         // The URL: https://zo9bnne4ec.execute-api.eu-west-1.amazonaws.com/dev/user-management/promote_to_owner
         // Send the company ID in the request body as JSON
-        try {
-            String url = "https://zo9bnne4ec.execute-api.eu-west-1.amazonaws.com/dev/user-management/promote_to_owner";
-            HttpClient client = HttpClient.newHttpClient();
-            String requestBody = String.format("{\"company_id\": \"%s\"}", company.getId().toString());
-            HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .header("Authorization", "Bearer " + authHandler.getAuthenticatedAccessToken())
-            .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-            .build();
-
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                logger.error("Failed to promote user to FRANCHISE_OWNER");
-                // Details about the error can be found in the request response
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response.body());
-            }
-
-            logger.info("User promoted to FRANCHISE_OWNER successfully");
-        } catch (Exception e) {
-            logger.error("Exception occurred while promoting user to FRANCHISE_OWNER", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to promote user to FRANCHISE_OWNER.");
+        String message = cognitoUtils.promoteDisassociatedToOwner(company);
+        if (message != null) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(message);
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(company);
@@ -116,7 +100,7 @@ public class CompanyController {
             @ApiResponse(responseCode = "403", description = "User is not eligible to view company details"),
             @ApiResponse(responseCode = "404", description = "Company not found")
     })
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @GetMapping("/details")
     public ResponseEntity<Object> getCompanyDetails() {
 
