@@ -38,7 +38,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -145,25 +144,25 @@ class InventoryControllerTest {
         inventory.setId(inventoryId);
         inventory.setReport("Test report");
 
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
 
         mockMvc.perform(get("/api/inventories/" + inventoryId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.report").value("Test report"));
 
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).getInventoryById(inventoryId);
     }
 
     @Test
     @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetInventoryById_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/inventories/" + inventoryId))
                 .andExpect(status().isNotFound());
 
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).getInventoryById(inventoryId);
     }
 
     @Test
@@ -174,7 +173,7 @@ class InventoryControllerTest {
         restaurant.setId(restaurantId);
         List<Inventory> inventories = List.of(createInventory(restaurantId), createInventory(restaurantId));
 
-        when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.of(restaurant));
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.of(restaurant));
         when(inventoryService.getInventoriesByRestaurant(any(Restaurant.class))).thenReturn(inventories);
 
         mockMvc.perform(get("/api/inventories/restaurant/" + restaurantId))
@@ -189,7 +188,7 @@ class InventoryControllerTest {
     @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testGetInventoriesByRestaurant_RestaurantNotFound() throws Exception {
         UUID restaurantId = UUID.randomUUID();
-        when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.empty());
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/inventories/restaurant/" + restaurantId))
                 .andExpect(status().isNotFound());
@@ -204,7 +203,7 @@ class InventoryControllerTest {
         Restaurant restaurant = new Restaurant();
         restaurant.setId(restaurantId);
         
-        when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.of(restaurant));
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.of(restaurant));
         when(inventoryService.getInventoriesByRestaurant(any(Restaurant.class))).thenReturn(new ArrayList<>());
 
         mockMvc.perform(get("/api/inventories/restaurant/" + restaurantId))
@@ -233,7 +232,7 @@ class InventoryControllerTest {
         inventory.addItemProperties(itemProperties1);
         inventory.addItemProperties(itemProperties2);
 
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
 
         mockMvc.perform(get("/api/inventories/" + inventoryId + "/items")
                 .param("page", "0")
@@ -249,7 +248,7 @@ class InventoryControllerTest {
         UUID inventoryId = UUID.randomUUID();
         Inventory inventory = createInventory(UUID.randomUUID());
         
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
 
         mockMvc.perform(get("/api/inventories/" + inventoryId + "/items")
                 .param("page", "0")
@@ -262,7 +261,7 @@ class InventoryControllerTest {
     void testGetItemsByInventoryId_InventoryNotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/inventories/" + inventoryId + "/items")
                 .param("page", "0")
@@ -274,24 +273,24 @@ class InventoryControllerTest {
     @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testDeleteInventoryById_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(new Inventory()));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(new Inventory()));
 
         mockMvc.perform(delete("/api/inventories/" + inventoryId))
                 .andExpect(status().isOk());
 
-        verify(inventoryService, times(1)).deleteInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).deleteInventoryById(inventoryId);
     }
 
     @Test
     @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testDeleteInventoryById_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.empty());
 
         mockMvc.perform(delete("/api/inventories/" + inventoryId))
                 .andExpect(status().isNotFound());
 
-        verify(inventoryService, never()).deleteInventoryById(eq(inventoryId));
+        verify(inventoryService, never()).deleteInventoryById(inventoryId);
     }
 
     @Test
@@ -306,7 +305,7 @@ class InventoryControllerTest {
         inventory.setId(inventoryId);
 
         when(restaurantService.restaurantExistsById(restaurantId)).thenReturn(true);
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
         when(inventoryService.updateInventory(eq(inventoryId), any(Inventory.class))).thenReturn(Optional.of(inventory));
 
         mockMvc.perform(put("/api/inventories/" + inventoryId)
@@ -367,7 +366,7 @@ class InventoryControllerTest {
         inventory.setId(inventoryId);
 
         when(restaurantService.restaurantExistsById(restaurantId)).thenReturn(true);
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
         when(inventoryService.updateInventory(eq(inventoryId), any(Inventory.class))).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/api/inventories/" + inventoryId)
@@ -393,8 +392,8 @@ class InventoryControllerTest {
         itemRequest.setQuantity(10);
         itemRequest.setExpirationDate(LocalDate.now().plusMonths(6));
 
-        when(itemService.getItemByBarcode(eq(itemRequest.getBarCode()))).thenReturn(item);
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(itemService.findItemByBarcode(itemRequest.getBarCode())).thenReturn(item);
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
         when(inventoryService.saveInventory(any(Inventory.class))).thenReturn(inventory);
 
         ItemProperties itemProperties = new ItemProperties(item, itemRequest.getExpirationDate(), itemRequest.getQuantity());
@@ -405,7 +404,7 @@ class InventoryControllerTest {
                         .content(objectMapper.writeValueAsString(itemRequest)))
                 .andExpect(status().isOk());
 
-        verify(itemService, times(1)).getItemByBarcode(itemRequest.getBarCode());
+        verify(itemService, times(1)).findItemByBarcode(itemRequest.getBarCode());
         verify(itemPropertiesService, times(1)).createItemProperties(any(ItemProperties.class));
         verify(inventoryService, times(1)).saveInventory(any(Inventory.class));
     }
@@ -424,7 +423,7 @@ class InventoryControllerTest {
         inventory.setRestaurant(restaurant);
 
         when(restaurantService.restaurantExistsById(restaurantId)).thenReturn(true);
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/api/inventories/" + inventoryId)
                         .contentType("application/json")
@@ -443,8 +442,8 @@ class InventoryControllerTest {
         itemRequest.setQuantity(10); // Defina a quantidade
 
         Item item = new Item();
-        when(itemService.getItemByBarcode(eq(itemRequest.getBarCode()))).thenReturn(item);
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+        when(itemService.findItemByBarcode(itemRequest.getBarCode())).thenReturn(item);
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/inventories/" + inventoryId + "/items")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -461,25 +460,25 @@ class InventoryControllerTest {
         Inventory inventory = createInventory(UUID.randomUUID());
         inventory.setClosingDate(LocalDateTime.now().minusDays(1)); // Set a past closing date to simulate closure
 
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
 
         mockMvc.perform(get("/api/inventories/" + inventoryId + "/is-closed"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value(true)); // Adjusted to expect a direct Boolean value
 
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).getInventoryById(inventoryId);
     }
 
     @Test
     @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testIsInventoryClosed_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/inventories/" + inventoryId + "/is-closed"))
                 .andExpect(status().isNotFound());
 
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).getInventoryById(inventoryId);
     }
 
     @Test
@@ -489,13 +488,13 @@ class InventoryControllerTest {
         Inventory inventory = createInventory(UUID.randomUUID());
         inventory.setClosingDate(null);
 
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
 
         mockMvc.perform(get("/api/inventories/" + inventoryId + "/is-closed"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value(false));
 
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).getInventoryById(inventoryId);
     }
 
     @Test
@@ -505,25 +504,25 @@ class InventoryControllerTest {
         Inventory inventory = createInventory(UUID.randomUUID());
         inventory.setExpectedClosingDate(LocalDateTime.now().minusDays(1)); // Set a past expected closing date
 
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
 
         mockMvc.perform(get("/api/inventories/" + inventoryId + "/should-be-closed"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value(true)); // Adjusted to expect a direct Boolean value
 
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).getInventoryById(inventoryId);
     }
 
     @Test
     @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
     void testIsInventoryExpectedToClose_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/inventories/" + inventoryId + "/should-be-closed"))
                 .andExpect(status().isNotFound());
 
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).getInventoryById(inventoryId);
     }
 
     @Test
@@ -533,13 +532,13 @@ class InventoryControllerTest {
         Inventory inventory = createInventory(UUID.randomUUID());
         inventory.setExpectedClosingDate(null);
 
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
 
         mockMvc.perform(get("/api/inventories/" + inventoryId + "/should-be-closed"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value(false));
 
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).getInventoryById(inventoryId);
     }
 
     @Test
@@ -558,14 +557,14 @@ class InventoryControllerTest {
         
         List<Inventory> inventories = List.of(openInventory, closedInventory);
 
-        when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.of(restaurant));
-        when(inventoryService.getInventoriesByRestaurant(eq(restaurant))).thenReturn(inventories);
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.of(restaurant));
+        when(inventoryService.getInventoriesByRestaurant(restaurant)).thenReturn(inventories);
 
         mockMvc.perform(get("/api/inventories/restaurant/" + restaurantId + "/open"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].report").value("Test report"));
 
-        verify(inventoryService, times(1)).getInventoriesByRestaurant(eq(restaurant));
+        verify(inventoryService, times(1)).getInventoriesByRestaurant(restaurant);
     }
 
     @Test
@@ -584,13 +583,13 @@ class InventoryControllerTest {
         
         List<Inventory> inventories = List.of(closedInventory1, closedInventory2);
 
-        when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.of(restaurant));
-        when(inventoryService.getInventoriesByRestaurant(eq(restaurant))).thenReturn(inventories);
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.of(restaurant));
+        when(inventoryService.getInventoriesByRestaurant(restaurant)).thenReturn(inventories);
 
         mockMvc.perform(get("/api/inventories/restaurant/" + restaurantId + "/open"))
                 .andExpect(status().isNoContent());  // No open inventories found
 
-        verify(inventoryService, times(1)).getInventoriesByRestaurant(eq(restaurant));
+        verify(inventoryService, times(1)).getInventoriesByRestaurant(restaurant);
     }
 
     @Test
@@ -599,7 +598,7 @@ class InventoryControllerTest {
         UUID restaurantId = UUID.randomUUID();
         
         // Mock that the restaurant does not exist
-        when(restaurantService.getRestaurantById(eq(restaurantId))).thenReturn(Optional.empty());
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/inventories/restaurant/" + restaurantId + "/open"))
                 .andExpect(status().isNotFound());  // Restaurant not found
@@ -615,7 +614,7 @@ class InventoryControllerTest {
         LocalDateTime closingDate = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
         // Mock service methods
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.of(inventory));
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(inventory));
         when(inventoryService.saveInventory(any(Inventory.class))).thenReturn(inventory);
         when(authHandler.getAuthenticatedCognitoSub()).thenReturn("cognito-sub-example");
 
@@ -627,7 +626,7 @@ class InventoryControllerTest {
                 .andExpect(jsonPath("$.closedByUser").value("cognito-sub-example"));
 
         // Verify service calls
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).getInventoryById(inventoryId);
         verify(inventoryService, times(1)).saveInventory(any(Inventory.class));
     }
 
@@ -639,7 +638,7 @@ class InventoryControllerTest {
         LocalDateTime closingDate = LocalDateTime.now();
 
         // Mock the repository to simulate inventory not found
-        when(inventoryService.getInventoryById(eq(inventoryId))).thenReturn(Optional.empty());
+        when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.empty());
 
         // Perform the request with the mock token
         mockMvc.perform(put("/api/inventories/" + inventoryId + "/close")
@@ -648,7 +647,7 @@ class InventoryControllerTest {
                 .andExpect(status().isNotFound());
 
         // Verify service calls
-        verify(inventoryService, times(1)).getInventoryById(eq(inventoryId));
+        verify(inventoryService, times(1)).getInventoryById(inventoryId);
         verify(inventoryService, never()).saveInventory(any(Inventory.class));
     }
 

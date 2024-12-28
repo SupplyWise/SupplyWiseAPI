@@ -48,6 +48,10 @@ public class CognitoUtils {
             }
 
             logger.info("User promoted to FRANCHISE_OWNER successfully");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.error("Thread was interrupted while promoting user to FRANCHISE_OWNER", e);
+            return "Failed to promote user to FRANCHISE_OWNER.";
         } catch (Exception e) {
             logger.error("Exception occurred while promoting user to FRANCHISE_OWNER", e);
             return "Failed to promote user to FRANCHISE_OWNER.";

@@ -12,6 +12,7 @@ import com.nimbusds.jose.jwk.JWKMatcher;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.proc.SecurityContext;
 import java.net.URL;
+import com.supplywise.supplywise.exception.CognitoTokenValidationException;
 
 public class CognitoTokenValidator {
 
@@ -28,7 +29,7 @@ public class CognitoTokenValidator {
             JWKSet jwkSet = JWKSet.load(new URL(JWK_URL).openStream());
             keySource = new ImmutableJWKSet<>(jwkSet);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load JWKS from Cognito", e);
+            throw new CognitoTokenValidationException("Failed to load JWK set", e);
         }
     }
 
@@ -49,7 +50,7 @@ public class CognitoTokenValidator {
         try {
             return SignedJWT.parse(token).getJWTClaimsSet();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse token claims", e);
+            throw new CognitoTokenValidationException("Failed to parse JWT claims", e);
         }
     }
 }

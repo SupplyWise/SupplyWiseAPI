@@ -2,7 +2,6 @@ package com.supplywise.supplywise.controllers;
 
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.services.ItemPropertiesService;
-import com.supplywise.supplywise.services.AuthHandler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,12 +24,10 @@ public class ItemPropertiesController {
     private static final Logger logger = LoggerFactory.getLogger(ItemPropertiesController.class);
 
     private final ItemPropertiesService itemPropertiesService;
-    private final AuthHandler authHandler;
 
     @Autowired
-    public ItemPropertiesController(ItemPropertiesService itemPropertiesService, AuthHandler authHandler) {
+    public ItemPropertiesController(ItemPropertiesService itemPropertiesService) {
         this.itemPropertiesService = itemPropertiesService;
-        this.authHandler = authHandler;
     }
 
     @Operation(summary = "Create new item properties")
@@ -41,7 +38,7 @@ public class ItemPropertiesController {
     })
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @PostMapping("/create")
-    public ResponseEntity<?> createItemProperties(@RequestBody ItemProperties itemProperties) {
+    public ResponseEntity<Object> createItemProperties(@RequestBody ItemProperties itemProperties) {
         logger.info("Attempting to create item properties");
 
         try {
@@ -76,7 +73,7 @@ public class ItemPropertiesController {
     })
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @GetMapping("/{id}")
-    public ResponseEntity<?> getItemPropertiesById(@Parameter(description = "ID of the item properties to be fetched") @PathVariable UUID id) {
+    public ResponseEntity<Object> getItemPropertiesById(@Parameter(description = "ID of the item properties to be fetched") @PathVariable UUID id) {
         logger.info("Attempting to fetch item properties with ID: {}", id);
 
         ItemProperties itemProperties = itemPropertiesService.getItemPropertiesById(id);
@@ -97,7 +94,7 @@ public class ItemPropertiesController {
     })
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteItemProperties(@Parameter(description = "ID of the item properties to be deleted") @PathVariable UUID id) {
+    public ResponseEntity<Object> deleteItemProperties(@Parameter(description = "ID of the item properties to be deleted") @PathVariable UUID id) {
         logger.info("Attempting to delete item properties with ID: {}", id);
 
         itemPropertiesService.deleteItemProperties(id);

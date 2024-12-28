@@ -35,6 +35,8 @@ public class RestaurantController {
     private final AuthHandler authHandler;
     private final Logger logger = LoggerFactory.getLogger(RestaurantController.class);
 
+    private static final String RESTAURANT_NOT_FOUND = "Restaurant not found";
+
     @Autowired
     public RestaurantController(RestaurantService restaurantService, CompanyService companyService, AuthHandler authHandler) {
         this.restaurantService = restaurantService;
@@ -79,7 +81,7 @@ public class RestaurantController {
             logger.info("Restaurant found");
             return new ResponseEntity<>(restaurantOptional.get(), HttpStatus.OK);
         }
-        logger.error("Restaurant not found");
+        logger.error(RESTAURANT_NOT_FOUND);
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
@@ -96,7 +98,7 @@ public class RestaurantController {
         Optional<Restaurant> updatedRestaurant = restaurantService.updateRestaurantName(id, newName);
 
         if (!updatedRestaurant.isPresent()) {
-            logger.error("Restaurant not found");
+            logger.error(RESTAURANT_NOT_FOUND);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
@@ -115,7 +117,7 @@ public class RestaurantController {
         logger.info("Attempting to delete restaurant by ID");
 
         if (!restaurantService.restaurantExistsById(id)) {
-            logger.error("Restaurant not found");
+            logger.error(RESTAURANT_NOT_FOUND);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
@@ -155,7 +157,7 @@ public class RestaurantController {
         logger.info("Attempting to get restaurants for the authenticated user");
 
         UUID companyId = UUID.fromString(authHandler.getAuthenticatedCompanyId());
-        logger.info("Company ID: " + companyId);
+        logger.info("Company ID: {}", companyId);
 
         List<Restaurant> restaurants = restaurantService.getRestaurantsByCompanyId(companyId);
         if (restaurants.isEmpty()) {
