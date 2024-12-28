@@ -21,16 +21,17 @@ public class CognitoUtils {
     private final Logger logger = LoggerFactory.getLogger(CognitoUtils.class);
 
     private final AuthHandler authHandler;
+    private final HttpClient client;
 
     @Autowired
-    public CognitoUtils(AuthHandler authHandler) {
+    public CognitoUtils(AuthHandler authHandler, HttpClient client) {
         this.authHandler = authHandler;
+        this.client = client;
     }
     
     public String promoteDisassociatedToOwner(Company company) {
         try {
             String url = "https://zo9bnne4ec.execute-api.eu-west-1.amazonaws.com/dev/user-management/promote_to_owner";
-            HttpClient client = HttpClient.newHttpClient();
             String requestBody = String.format("{\"company_id\": \"%s\"}", company.getId().toString());
             HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(url))
