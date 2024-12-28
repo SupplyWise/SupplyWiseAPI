@@ -5,6 +5,7 @@ import com.supplywise.supplywise.config.SecurityConfiguration;
 import com.supplywise.supplywise.model.Company;
 import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.CompanyService;
+
 import com.supplywise.supplywise.services.CognitoUtils;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -87,6 +88,22 @@ class CompanyControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"DISASSOCIATED"})
+    void testCreateCompany_PromotionError() throws Exception {
+        String companyName = "TechCorp";
+        Company company = new Company();
+        company.setName(companyName);
+        when(companyService.createCompany(any(Company.class))).thenReturn(company);
+        when(authHandler.getAuthenticatedCompanyId()).thenReturn("mock-company-id");
+        when(cognitoUtils.promoteDisassociatedToOwner(any(Company.class))).thenReturn("Error message");
+
+        mockMvc.perform(post("/api/company/create")
+                .param("name", companyName)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Error message"));
+    }
 
     @Test
     @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
@@ -105,5 +122,67 @@ class CompanyControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(company.getId().toString()));
-            }
+    }
+
+    @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
+    void testGetCompanyDetails_UserIsManager_ShouldReturnNotFound() throws Exception {
+        // Random UUID
+        UUID companyId = UUID.randomUUID();
+        
+        // Mock the auth handler to return the companyId (authHandler.getAuthenticatedCompanyId())
+        when(authHandler.getAuthenticatedCompanyId()).thenReturn(companyId.toString());
+    
+        // Make the request with the mock token
+        mockMvc.perform(get("/api/company/details")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"ADMIN"})
+    void testGetCompanyDetailsWithId_UserIsAdmin_ShouldReturnCompanyDetails() throws Exception {
+        // Create mock company data
+        Company company = new Company();
+        company.setId(UUID.randomUUID());
+        company.setName("Company Name");
+        
+        when(companyService.getCompanyById(company.getId())).thenReturn(company);
+    
+        // Make the request with the mock token
+        mockMvc.perform(get("/api/company/details/" + company.getId())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(company.getId().toString()));
+    }
+
+    @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"ADMIN"})
+    void testGetCompanyDetailsWithId_UserIsAdmin_ShouldReturnNotFound() throws Exception {
+        // Random UUID
+        UUID companyId = UUID.randomUUID();
+    
+        // Make the request with the mock token
+        mockMvc.perform(get("/api/company/details/" + companyId)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
+    void testGetCompanyDetailsByID_UserIsManager_ShouldReturnForbiden() throws Exception {
+        // Create mock company data
+        Company company = new Company();
+        company.setId(UUID.randomUUID());
+        company.setName("Company Name");
+        
+        // Mock the auth handler to return the companyId (authHandler.getAuthenticatedCompanyId())
+        when(authHandler.getAuthenticatedCompanyId()).thenReturn(company.getId().toString());
+        when(companyService.getCompanyById(company.getId())).thenReturn(company);
+    
+        // Make the request with the mock token
+        mockMvc.perform(get("/api/company/details/" + company.getId())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    } 
 }

@@ -16,11 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,14 +26,16 @@ import java.util.UUID;
 @Tag(name = "Company Controller", description = "API for Company operations")
 public class CompanyController {
 
-    @Autowired
-    private CompanyService companyService;
+    private final CompanyService companyService;
+    private final CognitoUtils cognitoUtils;
+    private final AuthHandler authHandler;
 
     @Autowired
-    private CognitoUtils cognitoUtils;
-
-    @Autowired
-    private AuthHandler authHandler;
+    public CompanyController(CompanyService companyService, CognitoUtils cognitoUtils, AuthHandler authHandler) {
+        this.companyService = companyService;
+        this.cognitoUtils = cognitoUtils;
+        this.authHandler = authHandler;
+    }
 
     private final Logger logger = LoggerFactory.getLogger(CompanyController.class);
 
@@ -77,9 +74,9 @@ public class CompanyController {
             @ApiResponse(responseCode = "403", description = "User is not eligible to view company details"),
             @ApiResponse(responseCode = "404", description = "Company not found")
     })
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN'')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @GetMapping("/details/{id}")
-    public ResponseEntity<String> getCompanyDetailsById(@PathVariable UUID id) {
+    public ResponseEntity<Object> getCompanyDetailsById(@PathVariable UUID id) {
 
         logger.info("Attempting to fetch company details by ID");
 
@@ -91,7 +88,7 @@ public class CompanyController {
         }
 
         logger.info("Company details fetched successfully");
-        return ResponseEntity.ok(company.toString());
+        return ResponseEntity.ok(company);
     }
 
     @Operation(summary = "Get company details", description = "Get the details of the company of the authenticated user")

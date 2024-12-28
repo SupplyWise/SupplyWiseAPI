@@ -57,7 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 companyId = claims.getStringClaim("company_id");
                 restaurantId = claims.getStringClaim("restaurant_id");
             } catch (ParseException e) {
-                e.printStackTrace();
+                logger_.error("Error parsing claims from JWT token: {}", e.getMessage());
             }
 
             if (username != null && roles != null) {
