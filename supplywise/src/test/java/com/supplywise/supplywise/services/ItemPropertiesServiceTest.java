@@ -172,7 +172,7 @@ class ItemPropertiesServiceTest {
         when(itemPropertiesRepository.save(any(ItemProperties.class))).thenReturn(updatedItemProperties);
 
         // Execute the method
-        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties);
+        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties, true); // Assuming user can edit min stock
 
         // Verify that the itemProperties is updated and saved
         verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
@@ -182,6 +182,24 @@ class ItemPropertiesServiceTest {
         assertEquals(item, result.getItem());
         assertEquals(LocalDate.of(2026, 12, 31), result.getExpirationDate());
         assertEquals(200, result.getQuantity());
+    }
+
+    @Test
+    void testUpdateItemProperties_InvalidItem_ShouldReturnNull() {
+        // Generate a random UUID for the itemProperties
+        UUID itemPropertiesId = UUID.randomUUID();
+        
+        // Mock the repository to return null when the itemProperties is not found
+        when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.empty());
+
+        // Execute the method
+        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, new ItemProperties(), true);
+
+        // Verify that null is returned when itemProperties is not found
+        assertNull(result);
+
+        // Verify that the findById method was called
+        verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
     }
 
     @Test
@@ -197,5 +215,54 @@ class ItemPropertiesServiceTest {
 
         // Verify that the deleteById method was called
         verify(itemPropertiesRepository, times(1)).deleteById(itemPropertiesId);
+    }
+
+    @Test
+    void testUpdateMinimumStockQuantity_Success() {
+        // Setup
+        UUID itemPropertiesId = UUID.randomUUID();
+        ItemProperties existingItemProperties = new ItemProperties();
+        existingItemProperties.setId(itemPropertiesId);
+        existingItemProperties.setMinimumStockQuantity(5);
+
+        when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.of(existingItemProperties));
+        when(itemPropertiesRepository.save(any(ItemProperties.class))).thenReturn(existingItemProperties);
+
+        // Execute
+        ItemProperties result = itemPropertiesService.updateMinimumStockQuantity(itemPropertiesId, 10);
+
+        // Verify
+        assertNotNull(result);
+        assertEquals(10, result.getMinimumStockQuantity());
+        verify(itemPropertiesRepository).findById(itemPropertiesId);
+        verify(itemPropertiesRepository).save(existingItemProperties);
+    }
+
+    @Test
+    void testUpdateMinimumStockQuantity_ItemNotFound() {
+        // Setup
+        UUID itemPropertiesId = UUID.randomUUID();
+        when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.empty());
+
+        // Execute
+        ItemProperties result = itemPropertiesService.updateMinimumStockQuantity(itemPropertiesId, 10);
+
+        // Verify
+        assertNull(result);
+        verify(itemPropertiesRepository).findById(itemPropertiesId);
+        verify(itemPropertiesRepository, never()).save(any());
+    }
+
+    @Test
+    void testUpdateMinimumStockQuantity_NegativeValue() {
+        // Setup
+        UUID itemPropertiesId = UUID.randomUUID();
+
+        // Execute & Verify
+        assertThrows(IllegalArgumentException.class, () -> 
+            itemPropertiesService.updateMinimumStockQuantity(itemPropertiesId, -1)
+        );
+        verify(itemPropertiesRepository, never()).findById(any());
+        verify(itemPropertiesRepository, never()).save(any());
     }
 }

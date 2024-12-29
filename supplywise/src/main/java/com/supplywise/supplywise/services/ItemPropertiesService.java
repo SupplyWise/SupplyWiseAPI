@@ -24,7 +24,7 @@ public class ItemPropertiesService {
 
     public ItemProperties createItemProperties(ItemProperties itemProperties) {
         if (!isItemPropertiesValid(itemProperties)) {
-            throw new IllegalArgumentException("Item properties is not valid");
+            throw new IllegalArgumentException("Item properties are not valid.");
         }
         return itemPropertiesRepository.save(itemProperties);
     }
@@ -41,19 +41,57 @@ public class ItemPropertiesService {
         itemPropertiesRepository.deleteById(id);
     }
 
-    public ItemProperties updateItemProperties(UUID id, ItemProperties itemProperties) {
-        if (!isItemPropertiesValid(itemProperties)) {
-            throw new IllegalArgumentException("Item properties is not valid");
-        }
+    // Method to update general ItemProperties and handle role-based logic for minimum stock
+    public ItemProperties updateItemProperties(UUID id, ItemProperties newItemProperties, boolean canEditMinimumStock) {
+        ItemProperties existingItemProperties = itemPropertiesRepository.findById(id).orElse(null);
 
-        ItemProperties itemPropertiesToUpdate = itemPropertiesRepository.findById(id).orElse(null);
-        if (itemPropertiesToUpdate == null) {
+        if (existingItemProperties == null) {
             return null;
         }
-        itemPropertiesToUpdate.setItem(itemProperties.getItem());
-        itemPropertiesToUpdate.setExpirationDate(itemProperties.getExpirationDate());
-        itemPropertiesToUpdate.setQuantity(itemProperties.getQuantity());
-        return itemPropertiesRepository.save(itemPropertiesToUpdate);
+
+        // Update general fields
+        if (newItemProperties.getItem() != null) {
+            existingItemProperties.setItem(newItemProperties.getItem());
+        }
+        if (newItemProperties.getExpirationDate() != null) {
+            existingItemProperties.setExpirationDate(newItemProperties.getExpirationDate());
+        }
+        if (newItemProperties.getQuantity() != null) {
+            existingItemProperties.setQuantity(newItemProperties.getQuantity());
+        }
+
+        // Update minimum stock only if the user has the necessary permissions
+        if (canEditMinimumStock && newItemProperties.getMinimumStockQuantity() != null) {
+            if (newItemProperties.getMinimumStockQuantity() < 0) {
+                throw new IllegalArgumentException("Minimum stock quantity cannot be negative");
+            }
+            existingItemProperties.setMinimumStockQuantity(newItemProperties.getMinimumStockQuantity());
+        }
+
+        // Validate the updated item properties
+        if (!isItemPropertiesValid(existingItemProperties)) {
+            throw new IllegalArgumentException("Updated item properties are not valid.");
+        }
+
+        return itemPropertiesRepository.save(existingItemProperties);
+    }
+
+    // Method to update only the minimum stock quantity (for authorized roles)
+    public ItemProperties updateMinimumStockQuantity(UUID id, Integer minimumStock) {
+        if (minimumStock < 0) {
+            throw new IllegalArgumentException("Minimum stock quantity cannot be negative");
+        }
+
+        ItemProperties itemProperties = itemPropertiesRepository.findById(id)
+                .orElse(null);
+
+        if (itemProperties == null) {
+            return null;
+        }
+
+        itemProperties.setMinimumStockQuantity(minimumStock);
+
+        return itemPropertiesRepository.save(itemProperties);
     }
 
     /* Helper functions */

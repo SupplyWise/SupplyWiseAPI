@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +86,51 @@ public class ItemPropertiesController {
 
         logger.info("Item properties fetched successfully with ID: {}", id);
         return ResponseEntity.ok(itemProperties);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateItemProperties(
+            @PathVariable UUID id, 
+            @RequestBody ItemProperties itemProperties) {
+
+        logger.info("Attempting to update item properties for ID: {}", id);
+
+        User authenticatedUser = authHandler.getAuthenticatedUser();
+
+        if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
+            logger.error("User is not authorized to update item properties");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to update item properties.");
+        }
+
+        // Validate required fields for all users
+        if (itemProperties.getExpirationDate() == null || itemProperties.getQuantity() == null || itemProperties.getItem() == null) {
+            logger.error("Item properties fields are missing or invalid");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Item properties fields are missing or invalid.");
+        }
+
+        // Only update minimum stock if the user has the necessary permissions
+        if (authenticatedUser.getRole() != Role.MANAGER_MASTER && authenticatedUser.getRole() != Role.FRANCHISE_OWNER) {
+            logger.info("User does not have permission to update minimum stock quantities, leaving it unchanged");
+            itemProperties.setMinimumStockQuantity(null); // Do not update minimumStockQuantity
+        }
+
+        try {
+            boolean canEditMinimumStock = (authenticatedUser.getRole() == Role.MANAGER_MASTER || authenticatedUser.getRole() == Role.FRANCHISE_OWNER);
+            ItemProperties updatedItemProperties = itemPropertiesService.updateItemProperties(id, itemProperties, canEditMinimumStock);
+
+            if (updatedItemProperties == null) {
+                logger.error("Item properties not found with ID: {}", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Item properties not found.");
+            }
+
+            logger.info("Item properties updated successfully with ID: {}", id);
+            logger.info("Item properties: " + updatedItemProperties);
+            return ResponseEntity.ok(updatedItemProperties);
+
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid item properties: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @Operation(summary = "Delete item properties by ID")

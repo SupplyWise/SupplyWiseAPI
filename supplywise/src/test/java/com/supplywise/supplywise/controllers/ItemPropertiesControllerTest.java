@@ -2,6 +2,7 @@ package com.supplywise.supplywise.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplywise.supplywise.model.ItemProperties;
+import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.config.JwtAuthenticationFilter;
@@ -19,10 +20,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -48,6 +53,7 @@ class ItemPropertiesControllerTest {
 
     private String managerUser;
     private String disassociatedUser;
+
     private ItemProperties itemProperties;
     private UUID itemId;
 
@@ -174,5 +180,72 @@ class ItemPropertiesControllerTest {
     
         // Verify that the item properties service was not called
         verify(itemPropertiesService, never()).deleteItemProperties(itemId);
-    }    
+
+    }
+
+    @Test
+    void testUpdateItemProperties_InvalidFields() throws Exception {
+        itemProperties.setExpirationDate(null);
+        itemProperties.setQuantity(null);
+
+        when(authHandler.getAuthenticatedUser()).thenReturn(managerMasterUser);
+
+        mockMvc.perform(put("/api/item-properties/{id}", itemId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemProperties)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Item properties fields are missing or invalid."));
+
+        verify(itemPropertiesService, never()).updateItemProperties(eq(itemId), any(ItemProperties.class), eq(true));
+    }
+
+    @Test
+    void testUpdateItemProperties_DisassociatedUser() throws Exception {
+        when(authHandler.getAuthenticatedUser()).thenReturn(disassociatedUser);
+
+        mockMvc.perform(put("/api/item-properties/{id}", itemId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemProperties)))
+                .andExpect(status().isForbidden())
+                .andExpect(content().string("User is not authorized to update item properties."));
+
+        verify(itemPropertiesService, never()).updateItemProperties(eq(itemId), any(ItemProperties.class), eq(true));
+    }
+
+    @Test
+    public void testUpdateItemProperties_AuthorizedUser() {
+        ItemProperties validItemProperties = new ItemProperties();
+        validItemProperties.setExpirationDate(LocalDate.now().plusDays(30));
+        validItemProperties.setQuantity(100);
+        validItemProperties.setItem(new Item());
+    
+        when(authHandler.getAuthenticatedUser()).thenReturn(managerMasterUser); 
+        when(itemPropertiesService.updateItemProperties(eq(itemId), eq(validItemProperties), eq(true)))
+                .thenReturn(validItemProperties);
+
+        ResponseEntity<?> response = itemPropertiesController.updateItemProperties(itemId, validItemProperties);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+    }
+    
+    @Test
+    public void testUpdateItemProperties_ItemNotFound() {
+        UUID nonExistentItemId = UUID.randomUUID();
+    
+        ItemProperties validItemProperties = new ItemProperties();
+        validItemProperties.setExpirationDate(LocalDate.now().plusDays(30));
+        validItemProperties.setQuantity(50);
+        validItemProperties.setItem(new Item());
+    
+        when(authHandler.getAuthenticatedUser()).thenReturn(managerMasterUser);
+
+        when(itemPropertiesService.updateItemProperties(eq(nonExistentItemId), eq(validItemProperties), eq(true)))
+                .thenReturn(null);
+
+        ResponseEntity<?> response = itemPropertiesController.updateItemProperties(nonExistentItemId, validItemProperties);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
 }
