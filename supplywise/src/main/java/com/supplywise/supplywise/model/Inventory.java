@@ -43,9 +43,8 @@ public class Inventory {
     @Column(name = "report")
     private String report;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "closed_by_user_id")
-    private User closedByUser;
+    @Column(name = "closed_by_user_id")
+    private String closedByUser;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -75,8 +74,11 @@ public class Inventory {
         items.remove(item);
     }
 
-    public void setClosedByUser(User user) {
+    public void setClosedByUser(String user) {
         this.closedByUser = user;
     }
 
+    public String getClosedByUser() {
+        return closedByUser;
+    }
 }

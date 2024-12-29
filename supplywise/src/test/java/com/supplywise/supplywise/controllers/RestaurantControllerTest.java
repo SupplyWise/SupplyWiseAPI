@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.model.Company;
 import com.supplywise.supplywise.services.RestaurantService;
+import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.CompanyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class RestaurantControllerTest {
 
     @Mock
     private CompanyService companyService;
+
+    @Mock
+    private AuthHandler authHandler;
 
     @InjectMocks
     private RestaurantController restaurantController;
@@ -193,6 +197,39 @@ class RestaurantControllerTest {
         when(restaurantService.getRestaurantsByCompanyId(any(UUID.class))).thenReturn(new ArrayList<>());
 
         mockMvc.perform(get("/api/restaurants/company/" + companyId))
+                .andExpect(status().isNoContent());
+        
+        verify(restaurantService, times(1)).getRestaurantsByCompanyId(any(UUID.class));
+    }
+
+    @Test
+    void testGetRestaurants_Success() throws Exception {
+        UUID companyId = UUID.randomUUID();
+        List<Restaurant> restaurants = new ArrayList<>();
+        Restaurant restaurant1 = new Restaurant();
+        restaurant1.setName("Restaurant 1");
+        Restaurant restaurant2 = new Restaurant();
+        restaurant2.setName("Restaurant 2");
+        restaurants.add(restaurant1);
+        restaurants.add(restaurant2);
+
+        when(restaurantService.getRestaurantsByCompanyId(any(UUID.class))).thenReturn(restaurants);
+        when(authHandler.getAuthenticatedCompanyId()).thenReturn(companyId.toString());
+
+        mockMvc.perform(get("/api/restaurants/company"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Restaurant 1"))
+                .andExpect(jsonPath("$[1].name").value("Restaurant 2"));
+        
+        verify(restaurantService, times(1)).getRestaurantsByCompanyId(any(UUID.class));
+    }
+
+    @Test
+    void testGetRestaurants_NoContent() throws Exception {
+        when(restaurantService.getRestaurantsByCompanyId(any(UUID.class))).thenReturn(new ArrayList<>());
+        when(authHandler.getAuthenticatedCompanyId()).thenReturn(UUID.randomUUID().toString());
+
+        mockMvc.perform(get("/api/restaurants/company"))
                 .andExpect(status().isNoContent());
         
         verify(restaurantService, times(1)).getRestaurantsByCompanyId(any(UUID.class));

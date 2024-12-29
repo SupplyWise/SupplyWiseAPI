@@ -75,7 +75,7 @@ public class ItemService {
         itemRepository.deleteById(id);
     }
 
-    public Item getItemByBarcode(int barcode) {
+    public Item findItemByBarcode(int barcode) {
         return itemRepository.findByBarCode(barcode).orElse(null);
     }
 

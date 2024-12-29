@@ -102,15 +102,6 @@ public class ItemPropertiesService {
         }
 
         Item item = itemRepository.findById(itemProperties.getItem().getId()).orElse(null);
-        if (item == null) {
-            return false;
-        }
-        if (itemProperties.getQuantity() < MIN_ITEM_QUANTITY) {
-            return false;
-        }
-        if (itemProperties.getExpirationDate() == null) {
-            return false;
-        }
-        return true;
+        return item != null && itemProperties.getQuantity() >= MIN_ITEM_QUANTITY && itemProperties.getExpirationDate() != null;
     }
 }
