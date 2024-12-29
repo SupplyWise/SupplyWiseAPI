@@ -1,27 +1,67 @@
 package com.supplywise.supplywise.services;
 
-import com.supplywise.supplywise.model.User;
+import com.supplywise.supplywise.config.CustomAuthenticationDetails;
+
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class AuthHandler {
 
-    private final UserService userService;
+    private final Logger logger = LoggerFactory.getLogger(AuthHandler.class);
 
-    public AuthHandler(UserService userService) {
-        this.userService = userService;
+    public String getAuthenticatedCognitoSub() {
+        // Extract Cognito sub from custom authentication details
+        return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 
-    // Method to retrieve the authenticated user
-    public User getAuthenticatedUser() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public String getAuthenticatedAccessToken() {
+        // Extract access token from credentials
+        return (String) SecurityContextHolder.getContext().getAuthentication().getCredentials();
+    }
 
-        if (principal == null || !(principal instanceof UserDetails)) {
-            return null;
+    public List<String> getAuthenticatedUserRoles() {
+        // Extract roles from authorities
+        return SecurityContextHolder.getContext()
+            .getAuthentication()
+            .getAuthorities()
+            .stream()
+            .map(GrantedAuthority::getAuthority)
+            .toList();
+    }
+
+    public String getAuthenticatedCompanyId() {
+        // Extract companyId from custom authentication details
+        CustomAuthenticationDetails details = getCustomAuthenticationDetails();
+        return details != null ? details.getCompanyId() : null;
+    }
+
+    public String getAuthenticatedRestaurantId() {
+        // Extract restaurantId from custom authentication details
+        CustomAuthenticationDetails details = getCustomAuthenticationDetails();
+        return details != null ? details.getRestaurantId() : null;
+    }
+
+    public String getAuthenticatedUsername() {
+        // Extract username from custom authentication details
+        CustomAuthenticationDetails details = getCustomAuthenticationDetails();
+        return details != null ? details.getUsername() : null;
+    }
+
+    private CustomAuthenticationDetails getCustomAuthenticationDetails() {
+        // Safely extract custom details from SecurityContext
+        Object details = SecurityContextHolder.getContext().getAuthentication().getDetails();
+        logger.info("Details: {}", details);
+        
+        if (details instanceof CustomAuthenticationDetails customAuthenticationDetails) {
+            return customAuthenticationDetails;
         }
-
-        return userService.findByEmailUser(((UserDetails) principal).getUsername());
+        return null;
     }
 }

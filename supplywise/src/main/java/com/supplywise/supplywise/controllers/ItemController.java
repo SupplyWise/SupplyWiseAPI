@@ -2,9 +2,6 @@ package com.supplywise.supplywise.controllers;
 
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.services.ItemService;
-import com.supplywise.supplywise.services.AuthHandler;
-import com.supplywise.supplywise.model.User;
-import com.supplywise.supplywise.model.Role;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,12 +24,10 @@ public class ItemController {
     private static final Logger logger = LoggerFactory.getLogger(ItemController.class);
 
     private final ItemService itemService;
-    private final AuthHandler authHandler;
 
     @Autowired
-    public ItemController(ItemService itemService, AuthHandler authHandler) {
+    public ItemController(ItemService itemService) {
         this.itemService = itemService;
-        this.authHandler = authHandler;
     }
 
     @Operation(summary = "Create a new item")
@@ -40,15 +36,10 @@ public class ItemController {
             @ApiResponse(responseCode = "400", description = "Item is not valid or is a duplicate"),
             @ApiResponse(responseCode = "403", description = "User is not authorized to create items")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @PostMapping("/create")
-    public ResponseEntity<?> createItem(@RequestBody Item item) {
+    public ResponseEntity<Object> createItem(@RequestBody Item item) {
         logger.info("Attempting to create item");
-
-        User authenticatedUser = authHandler.getAuthenticatedUser();
-        if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
-            logger.error("User is not authorized to create items");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to create items.");
-        }
 
         try {
             Item createdItem = itemService.createItem(item);
@@ -79,16 +70,10 @@ public class ItemController {
             @ApiResponse(responseCode = "403", description = "User is not authorized to fetch items"),
             @ApiResponse(responseCode = "404", description = "Item ID does not exist")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @GetMapping("/{id}")
-    public ResponseEntity<?> getItemById(@Parameter(description = "ID of the item to be fetched") @PathVariable UUID id) {
+    public ResponseEntity<Object> getItemById(@Parameter(description = "ID of the item to be fetched") @PathVariable UUID id) {
         logger.info("Attempting to fetch item with ID: {}", id);
-
-        User authenticatedUser = authHandler.getAuthenticatedUser();
-
-        if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
-            logger.error("User is not authorized to fetch items");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to fetch items.");
-        }
 
         Item item = itemService.getItemById(id);
 
@@ -106,15 +91,10 @@ public class ItemController {
             @ApiResponse(responseCode = "204", description = "Item deleted successfully"),
             @ApiResponse(responseCode = "403", description = "User is not authorized to delete items")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteItem(@Parameter(description = "ID of the item to be deleted") @PathVariable UUID id) {
+    public ResponseEntity<Object> deleteItem(@Parameter(description = "ID of the item to be deleted") @PathVariable UUID id) {
         logger.info("Attempting to delete item with ID: {}", id);
-
-        User authenticatedUser = authHandler.getAuthenticatedUser();
-        if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
-            logger.error("User is not authorized to delete items");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to delete items.");
-        }
 
         itemService.deleteItem(id);
         logger.info("Item deleted successfully with ID: {}", id);
@@ -127,18 +107,12 @@ public class ItemController {
             @ApiResponse(responseCode = "403", description = "User is not authorized to fetch items"),
             @ApiResponse(responseCode = "404", description = "Item barcode does not exist")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @GetMapping("/barcode/{barcode}")
-    public ResponseEntity<?> getItemByBarcode(@Parameter(description = "Barcode of the item to be fetched") @PathVariable int barcode) {
+    public ResponseEntity<Object> getItemByBarcode(@Parameter(description = "Barcode of the item to be fetched") @PathVariable int barcode) {
         logger.info("Attempting to fetch item with barcode: {}", barcode);
 
-        User authenticatedUser = authHandler.getAuthenticatedUser();
-
-        if (authenticatedUser.getRole() == Role.DISASSOCIATED) {
-            logger.error("User is not authorized to fetch items");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not authorized to fetch items.");
-        }
-
-        Item item = itemService.getItemByBarcode(barcode);
+        Item item = itemService.findItemByBarcode(barcode);
 
         if (item == null) {
             logger.error("Item not found with barcode: {}", barcode);
