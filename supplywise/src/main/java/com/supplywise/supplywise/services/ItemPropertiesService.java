@@ -42,7 +42,7 @@ public class ItemPropertiesService {
     }
 
     // Method to update general ItemProperties and handle role-based logic for minimum stock
-    public ItemProperties updateItemProperties(UUID id, ItemProperties newItemProperties, boolean canEditMinimumStock) {
+    public ItemProperties updateItemProperties(UUID id, ItemProperties newItemProperties) {
         ItemProperties existingItemProperties = itemPropertiesRepository.findById(id).orElse(null);
 
         if (existingItemProperties == null) {
@@ -61,7 +61,7 @@ public class ItemPropertiesService {
         }
 
         // Update minimum stock only if the user has the necessary permissions
-        if (canEditMinimumStock && newItemProperties.getMinimumStockQuantity() != null) {
+        if (newItemProperties.getMinimumStockQuantity() != null) {
             if (newItemProperties.getMinimumStockQuantity() < 0) {
                 throw new IllegalArgumentException("Minimum stock quantity cannot be negative");
             }
