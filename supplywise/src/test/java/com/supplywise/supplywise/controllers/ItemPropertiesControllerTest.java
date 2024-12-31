@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.services.ItemPropertiesService;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.config.JwtAuthenticationFilter;
 import com.supplywise.supplywise.config.SecurityConfiguration;
@@ -24,8 +25,6 @@ import java.util.UUID;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -61,6 +60,7 @@ class ItemPropertiesControllerTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
 
         itemId = UUID.randomUUID();
         itemProperties = new ItemProperties();
@@ -184,11 +184,10 @@ class ItemPropertiesControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER_MASTER"})
     void testUpdateItemProperties_InvalidFields() throws Exception {
         itemProperties.setExpirationDate(null);
         itemProperties.setQuantity(null);
-
-        when(authHandler.getAuthenticatedUser()).thenReturn(managerMasterUser);
 
         mockMvc.perform(put("/api/item-properties/{id}", itemId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -196,41 +195,44 @@ class ItemPropertiesControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Item properties fields are missing or invalid."));
 
-        verify(itemPropertiesService, never()).updateItemProperties(eq(itemId), any(ItemProperties.class), eq(true));
+        verify(itemPropertiesService, never()).updateItemProperties(eq(itemId), any(ItemProperties.class));
     }
 
     @Test
+    @WithMockUser(username = "cognito-sub-example", roles = {"DISASSOCIATED"})
     void testUpdateItemProperties_DisassociatedUser() throws Exception {
-        when(authHandler.getAuthenticatedUser()).thenReturn(disassociatedUser);
 
         mockMvc.perform(put("/api/item-properties/{id}", itemId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemProperties)))
-                .andExpect(status().isForbidden())
-                .andExpect(content().string("User is not authorized to update item properties."));
+                .andExpect(status().isForbidden());
 
-        verify(itemPropertiesService, never()).updateItemProperties(eq(itemId), any(ItemProperties.class), eq(true));
+        verify(itemPropertiesService, never()).updateItemProperties(eq(itemId), any(ItemProperties.class));
     }
 
     @Test
-    public void testUpdateItemProperties_AuthorizedUser() {
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER_MASTER"})
+    void testUpdateItemProperties_AuthorizedUser() throws Exception {
         ItemProperties validItemProperties = new ItemProperties();
         validItemProperties.setExpirationDate(LocalDate.now().plusDays(30));
         validItemProperties.setQuantity(100);
         validItemProperties.setItem(new Item());
     
-        when(authHandler.getAuthenticatedUser()).thenReturn(managerMasterUser); 
-        when(itemPropertiesService.updateItemProperties(eq(itemId), eq(validItemProperties), eq(true)))
-                .thenReturn(validItemProperties);
+        when(itemPropertiesService.updateItemProperties(itemId, validItemProperties)).thenReturn(validItemProperties);
 
-        ResponseEntity<?> response = itemPropertiesController.updateItemProperties(itemId, validItemProperties);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
+        mockMvc.perform(put("/api/item-properties/{id}", itemId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(validItemProperties)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.expirationDate").value(validItemProperties.getExpirationDate().toString()))
+            .andExpect(jsonPath("$.quantity").value(validItemProperties.getQuantity()));
+        
+        verify(itemPropertiesService, times(1)).updateItemProperties(itemId, validItemProperties);
     }
     
     @Test
-    public void testUpdateItemProperties_ItemNotFound() {
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER_MASTER"})
+    void testUpdateItemProperties_ItemNotFound() throws Exception{
         UUID nonExistentItemId = UUID.randomUUID();
     
         ItemProperties validItemProperties = new ItemProperties();
@@ -238,14 +240,15 @@ class ItemPropertiesControllerTest {
         validItemProperties.setQuantity(50);
         validItemProperties.setItem(new Item());
     
-        when(authHandler.getAuthenticatedUser()).thenReturn(managerMasterUser);
+        when(itemPropertiesService.updateItemProperties(nonExistentItemId, validItemProperties)).thenReturn(null);
 
-        when(itemPropertiesService.updateItemProperties(eq(nonExistentItemId), eq(validItemProperties), eq(true)))
-                .thenReturn(null);
-
-        ResponseEntity<?> response = itemPropertiesController.updateItemProperties(nonExistentItemId, validItemProperties);
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        mockMvc.perform(put("/api/item-properties/{id}", nonExistentItemId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(validItemProperties)))
+            .andExpect(status().isNotFound())
+            .andExpect(content().string("Item properties not found."));
+        
+        verify(itemPropertiesService, times(1)).updateItemProperties(nonExistentItemId, validItemProperties);
     }
 
 }

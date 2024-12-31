@@ -172,7 +172,7 @@ class ItemPropertiesServiceTest {
         when(itemPropertiesRepository.save(any(ItemProperties.class))).thenReturn(updatedItemProperties);
 
         // Execute the method
-        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties, true); // Assuming user can edit min stock
+        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties); // Assuming user can edit min stock
 
         // Verify that the itemProperties is updated and saved
         verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
@@ -193,7 +193,7 @@ class ItemPropertiesServiceTest {
         when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.empty());
 
         // Execute the method
-        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, new ItemProperties(), true);
+        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, new ItemProperties());
 
         // Verify that null is returned when itemProperties is not found
         assertNull(result);
