@@ -1,9 +1,12 @@
 package com.supplywise.supplywise.services;
 
+import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.model.ItemProperties;
+import com.supplywise.supplywise.model.Notification;
 import com.supplywise.supplywise.repositories.ItemPropertiesRepository;
 import com.supplywise.supplywise.repositories.ItemRepository;
+import com.supplywise.supplywise.repositories.InventoryRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,10 +19,14 @@ public class ItemPropertiesService {
 
     private final ItemPropertiesRepository itemPropertiesRepository;
     private final ItemRepository itemRepository;
+    private final InventoryRepository inventoryRepository;
+    private final NotificationService notificationService;
 
-    public ItemPropertiesService(ItemPropertiesRepository itemPropertiesRepository, ItemRepository itemRepository) {
+    public ItemPropertiesService(ItemPropertiesRepository itemPropertiesRepository, ItemRepository itemRepository, InventoryRepository inventoryRepository, NotificationService notificationService) {
         this.itemPropertiesRepository = itemPropertiesRepository;
         this.itemRepository = itemRepository;
+        this.inventoryRepository = inventoryRepository;
+        this.notificationService = notificationService;
     }
 
     public ItemProperties createItemProperties(ItemProperties itemProperties) {
@@ -71,6 +78,22 @@ public class ItemPropertiesService {
         // Validate the updated item properties
         if (!isItemPropertiesValid(existingItemProperties)) {
             throw new IllegalArgumentException("Updated item properties are not valid.");
+        }
+
+        if (existingItemProperties.getQuantity() < existingItemProperties.getMinimumStockQuantity()) {
+            Inventory inventory = inventoryRepository.findInventoryByItemPropertiesId(existingItemProperties.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Associated Inventory not found"));
+
+            String message = String.format("Item '%s' is below minimum stock in restaurant '%s'.",
+                    existingItemProperties.getItem().getName(),
+                    inventory.getRestaurant().getName());
+
+            Notification notification = new Notification(
+                    inventory.getRestaurant(),
+                    message
+            );
+
+            notificationService.createNotification(notification);
         }
 
         return itemPropertiesRepository.save(existingItemProperties);
