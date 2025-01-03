@@ -40,4 +40,9 @@ public class NotificationController {
     public void readNotification(@PathVariable UUID notificationId) {
         notificationService.readNotification(notificationId);
     }
+
+    @PostMapping("/{notificationId}/unread")
+    public void unreadNotification(@PathVariable UUID notificationId) {
+        notificationService.unreadNotification(notificationId);
+    }
 }

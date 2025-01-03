@@ -54,6 +54,13 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
+    public void unreadNotification(UUID notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
+        notification.markUnread();
+        notificationRepository.save(notification);
+    }    
+
     public void deleteNotification(Notification notification) {
         notificationRepository.delete(notification);
     }    

@@ -105,9 +105,11 @@ public class ItemPropertiesService {
         } else {
             // Create notification if quantity < minimum stock and no existing notification
             if (existingNotification.isEmpty()) {
-                String message = String.format("Item '%s' is below minimum stock in restaurant '%s'.",
+                String message = String.format("Item '%s' is below minimum stock in restaurant '%s' (%s -> %s).",
                         itemProperties.getItem().getName(),
-                        inventory.getRestaurant().getName());
+                        inventory.getRestaurant().getName(),
+                        itemProperties.getQuantity(),
+                        itemProperties.getMinimumStockQuantity());
 
                 Notification notification = new Notification(inventory.getRestaurant(), message);
                 notificationService.createNotification(notification);
