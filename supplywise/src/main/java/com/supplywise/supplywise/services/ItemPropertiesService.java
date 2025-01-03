@@ -112,6 +112,10 @@ public class ItemPropertiesService {
                 Notification notification = new Notification(inventory.getRestaurant(), message);
                 notificationService.createNotification(notification);
             }
+            if (existingNotification.isPresent() && existingNotification.get().isRead()) {
+                existingNotification.get().markUnread();
+                notificationService.updateNotification(existingNotification.get());
+            }
         }
     }
 

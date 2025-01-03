@@ -30,6 +30,10 @@ public class NotificationService {
         return savedNotification;
     }
 
+    public Notification updateNotification(Notification notification) {
+        return notificationRepository.save(notification);
+    }
+
     public List<Notification> getActiveNotifications(UUID restaurantId) {
         return notificationRepository.findByRestaurantIdAndIsResolved(restaurantId, false);
     }
