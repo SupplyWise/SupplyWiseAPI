@@ -1,8 +1,12 @@
 package com.supplywise.supplywise.services;
 
+import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.repositories.ItemRepository;
+import com.supplywise.supplywise.repositories.NotificationRepository;
 import com.supplywise.supplywise.model.ItemProperties;
+import com.supplywise.supplywise.model.Restaurant;
+import com.supplywise.supplywise.repositories.InventoryRepository;
 import com.supplywise.supplywise.repositories.ItemPropertiesRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +22,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class ItemPropertiesServiceTest {
@@ -30,6 +35,15 @@ class ItemPropertiesServiceTest {
 
     @InjectMocks
     private ItemPropertiesService itemPropertiesService;
+
+    @Mock
+    private InventoryRepository inventoryRepository;
+
+    @Mock
+    private NotificationRepository notificationRepository;
+
+    @Mock 
+    private NotificationService notificationService;
 
     @BeforeEach
     void setUp() {
@@ -144,11 +158,19 @@ class ItemPropertiesServiceTest {
 
     @Test
     void testUpdateItemProperties_ShouldUpdateAndReturnUpdatedItemProperties() {
-        // Mock Item
+        // Mock dependencies
         Item item = new Item();
         item.setId(UUID.randomUUID());
+        
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(UUID.randomUUID());
+        restaurant.setName("Test Restaurant");
+        
+        Inventory inventory = new Inventory();
+        inventory.setId(UUID.randomUUID());
+        inventory.setRestaurant(restaurant);
 
-        // Existing ItemProperties data
+        // Setup existing and updated properties
         UUID itemPropertiesId = UUID.randomUUID();
         ItemProperties existingItemProperties = new ItemProperties();
         existingItemProperties.setId(itemPropertiesId);
@@ -156,29 +178,27 @@ class ItemPropertiesServiceTest {
         existingItemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
         existingItemProperties.setQuantity(100);
 
-        // Updated ItemProperties data
         ItemProperties updatedItemProperties = new ItemProperties();
         updatedItemProperties.setItem(item);
         updatedItemProperties.setExpirationDate(LocalDate.of(2026, 12, 31));
         updatedItemProperties.setQuantity(200);
 
-        // Mock the repository to return the existing itemProperties when searched by ID
+        // Mock repository responses
         when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.of(existingItemProperties));
-
-        // Mock the repository to return the item
         when(itemRepository.findById(any(UUID.class))).thenReturn(Optional.of(item));
-
-        // Mock the repository to return the updated itemProperties when saved
         when(itemPropertiesRepository.save(any(ItemProperties.class))).thenReturn(updatedItemProperties);
+        when(inventoryRepository.findInventoryByItemPropertiesId(itemPropertiesId)).thenReturn(Optional.of(inventory));
+        when(notificationRepository.findByRestaurantIdAndMessageContaining(any(UUID.class), anyString()))
+            .thenReturn(Optional.empty());
 
-        // Execute the method
-        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties); // Assuming user can edit min stock
+        // Execute
+        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties);
 
-        // Verify that the itemProperties is updated and saved
-        verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
-        verify(itemPropertiesRepository, times(1)).save(existingItemProperties);
+        // Verify
+        verify(itemPropertiesRepository).findById(itemPropertiesId);
+        verify(itemPropertiesRepository).save(existingItemProperties);
+        verify(inventoryRepository).findInventoryByItemPropertiesId(itemPropertiesId);
 
-        // Check if the itemProperties returned matches the updated data
         assertEquals(item, result.getItem());
         assertEquals(LocalDate.of(2026, 12, 31), result.getExpirationDate());
         assertEquals(200, result.getQuantity());
