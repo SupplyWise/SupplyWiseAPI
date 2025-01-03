@@ -26,4 +26,10 @@ public class NotificationController {
     public void resolveNotification(@PathVariable UUID notificationId) {
         notificationService.resolveNotification(notificationId);
     }
+
+    @PostMapping("/{notificationId}/read")
+    public void readNotification(@PathVariable UUID notificationId) {
+        notificationService.readNotification(notificationId);
+    }
 }
+

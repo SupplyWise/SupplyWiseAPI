@@ -28,6 +28,9 @@ public class Notification {
     @Column(name = "is_resolved", nullable = false)
     private boolean isResolved = false;
 
+    @Column(name = "is_read", nullable = false)
+    private boolean isRead = false;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -38,5 +41,9 @@ public class Notification {
 
     public void markResolved() {
         this.isResolved = true;
+    }
+
+    public void markRead() {
+        this.isRead = true;
     }
 }
