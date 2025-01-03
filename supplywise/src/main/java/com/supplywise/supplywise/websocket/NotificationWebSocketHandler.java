@@ -30,7 +30,7 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
                 try {
                     session.sendMessage(new TextMessage(message));
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.err.println("Error sending notification to WebSocket session: " + session.getId());
                 }
             }
         }
