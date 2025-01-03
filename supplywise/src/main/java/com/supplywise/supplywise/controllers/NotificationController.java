@@ -22,8 +22,8 @@ public class NotificationController {
         return notificationService.getActiveNotifications(restaurantId);
     }
 
-    @PostMapping("/{restaurantId}/resolve")
-    public void resolveNotifications(@PathVariable UUID restaurantId) {
-        notificationService.resolveNotificationsForRestaurant(restaurantId);
+    @PostMapping("/{notificationId}/resolve")
+    public void resolveNotification(@PathVariable UUID notificationId) {
+        notificationService.resolveNotification(notificationId);
     }
 }

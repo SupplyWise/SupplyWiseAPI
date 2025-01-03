@@ -7,9 +7,11 @@ import com.supplywise.supplywise.model.Notification;
 import com.supplywise.supplywise.repositories.ItemPropertiesRepository;
 import com.supplywise.supplywise.repositories.ItemRepository;
 import com.supplywise.supplywise.repositories.InventoryRepository;
+import com.supplywise.supplywise.repositories.NotificationRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -20,12 +22,18 @@ public class ItemPropertiesService {
     private final ItemPropertiesRepository itemPropertiesRepository;
     private final ItemRepository itemRepository;
     private final InventoryRepository inventoryRepository;
+    private final NotificationRepository notificationRepository;
     private final NotificationService notificationService;
 
-    public ItemPropertiesService(ItemPropertiesRepository itemPropertiesRepository, ItemRepository itemRepository, InventoryRepository inventoryRepository, NotificationService notificationService) {
+    public ItemPropertiesService(ItemPropertiesRepository itemPropertiesRepository, 
+                                 ItemRepository itemRepository, 
+                                 InventoryRepository inventoryRepository, 
+                                 NotificationRepository notificationRepository,
+                                 NotificationService notificationService) {
         this.itemPropertiesRepository = itemPropertiesRepository;
         this.itemRepository = itemRepository;
         this.inventoryRepository = inventoryRepository;
+        this.notificationRepository = notificationRepository;
         this.notificationService = notificationService;
     }
 
@@ -48,7 +56,6 @@ public class ItemPropertiesService {
         itemPropertiesRepository.deleteById(id);
     }
 
-    // Method to update general ItemProperties and handle role-based logic for minimum stock
     public ItemProperties updateItemProperties(UUID id, ItemProperties newItemProperties) {
         ItemProperties existingItemProperties = itemPropertiesRepository.findById(id).orElse(null);
 
@@ -56,7 +63,7 @@ public class ItemPropertiesService {
             return null;
         }
 
-        // Update general fields
+        // Update fields
         if (newItemProperties.getItem() != null) {
             existingItemProperties.setItem(newItemProperties.getItem());
         }
@@ -66,8 +73,6 @@ public class ItemPropertiesService {
         if (newItemProperties.getQuantity() != null) {
             existingItemProperties.setQuantity(newItemProperties.getQuantity());
         }
-
-        // Update minimum stock only if the user has the necessary permissions
         if (newItemProperties.getMinimumStockQuantity() != null) {
             if (newItemProperties.getMinimumStockQuantity() < 0) {
                 throw new IllegalArgumentException("Minimum stock quantity cannot be negative");
@@ -75,28 +80,39 @@ public class ItemPropertiesService {
             existingItemProperties.setMinimumStockQuantity(newItemProperties.getMinimumStockQuantity());
         }
 
-        // Validate the updated item properties
         if (!isItemPropertiesValid(existingItemProperties)) {
             throw new IllegalArgumentException("Updated item properties are not valid.");
         }
 
-        if (existingItemProperties.getQuantity() < existingItemProperties.getMinimumStockQuantity()) {
-            Inventory inventory = inventoryRepository.findInventoryByItemPropertiesId(existingItemProperties.getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Associated Inventory not found"));
-
-            String message = String.format("Item '%s' is below minimum stock in restaurant '%s'.",
-                    existingItemProperties.getItem().getName(),
-                    inventory.getRestaurant().getName());
-
-            Notification notification = new Notification(
-                    inventory.getRestaurant(),
-                    message
-            );
-
-            notificationService.createNotification(notification);
-        }
+        // Notification logic
+        handleStockNotifications(existingItemProperties);
 
         return itemPropertiesRepository.save(existingItemProperties);
+    }
+
+    private void handleStockNotifications(ItemProperties itemProperties) {
+        Inventory inventory = inventoryRepository.findInventoryByItemPropertiesId(itemProperties.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Associated Inventory not found"));
+
+        Optional<Notification> existingNotification = notificationRepository.findByRestaurantIdAndMessageContaining(
+                inventory.getRestaurant().getId(),
+                itemProperties.getItem().getName()
+        );
+
+        if (itemProperties.getQuantity() >= itemProperties.getMinimumStockQuantity()) {
+            // Remove notification if quantity >= minimum stock
+            existingNotification.ifPresent(notificationService::deleteNotification);
+        } else {
+            // Create notification if quantity < minimum stock and no existing notification
+            if (existingNotification.isEmpty()) {
+                String message = String.format("Item '%s' is below minimum stock in restaurant '%s'.",
+                        itemProperties.getItem().getName(),
+                        inventory.getRestaurant().getName());
+
+                Notification notification = new Notification(inventory.getRestaurant(), message);
+                notificationService.createNotification(notification);
+            }
+        }
     }
 
     // Method to update only the minimum stock quantity (for authorized roles)
@@ -105,8 +121,7 @@ public class ItemPropertiesService {
             throw new IllegalArgumentException("Minimum stock quantity cannot be negative");
         }
 
-        ItemProperties itemProperties = itemPropertiesRepository.findById(id)
-                .orElse(null);
+        ItemProperties itemProperties = itemPropertiesRepository.findById(id).orElse(null);
 
         if (itemProperties == null) {
             return null;

@@ -34,9 +34,15 @@ public class NotificationService {
         return notificationRepository.findByRestaurantIdAndIsResolved(restaurantId, false);
     }
 
-    public void resolveNotificationsForRestaurant(UUID restaurantId) {
-        List<Notification> notifications = notificationRepository.findByRestaurantIdAndIsResolved(restaurantId, false);
-        notifications.forEach(Notification::markResolved);
-        notificationRepository.saveAll(notifications);
+    public void resolveNotification(UUID notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
+
+        notification.setResolved(true); // Mark as resolved
+        notificationRepository.save(notification);
     }
+
+    public void deleteNotification(Notification notification) {
+        notificationRepository.delete(notification);
+    }    
 }
