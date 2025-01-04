@@ -68,7 +68,7 @@ public class CompanyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(company);
     }
 
-    @Operation(summary = "Get company details", description = "Get the details of a company by its ID")
+    @Operation(summary = "Get company details by id", description = "Get the details of a company by its ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Company details fetched successfully"),
             @ApiResponse(responseCode = "403", description = "User is not eligible to view company details"),

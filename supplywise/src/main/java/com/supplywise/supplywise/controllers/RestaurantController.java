@@ -146,26 +146,40 @@ public class RestaurantController {
         return new ResponseEntity<>(restaurants, HttpStatus.OK);
     }
 
-    @Operation(summary = "Get all restaurants", description = "Retrieve all restaurants associated with the authenticated user")
+    @Operation(summary = "Get restaurants", description = "Retrieve all restaurants associated with the authenticated user")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Restaurants retrieved successfully"),
         @ApiResponse(responseCode = "204", description = "No restaurants found")
     })
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @GetMapping("/company")
     public ResponseEntity<List<Restaurant>> getRestaurants() {
         logger.info("Attempting to get restaurants for the authenticated user");
 
-        UUID companyId = UUID.fromString(authHandler.getAuthenticatedCompanyId());
-        logger.info("Company ID: {}", companyId);
+        // Check if the authenticated user is an admin or franchise owner
+        if (authHandler.hasRole("ROLE_ADMIN") || authHandler.hasRole("ROLE_FRANCHISE_OWNER")) {
+            UUID restaurantId = UUID.fromString(authHandler.getAuthenticatedRestaurantId());
+            Optional<Restaurant> restaurant = restaurantService.getRestaurantById(restaurantId);
 
-        List<Restaurant> restaurants = restaurantService.getRestaurantsByCompanyId(companyId);
-        if (restaurants.isEmpty()) {
-            logger.error("No restaurants found");
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            if (restaurant.isPresent()) {
+                logger.info("Restaurant found");
+                return new ResponseEntity<>(List.of(restaurant.get()), HttpStatus.OK);
+            }
+            logger.error(RESTAURANT_NOT_FOUND);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-
-        logger.info("Restaurants found");
-        return new ResponseEntity<>(restaurants, HttpStatus.OK);
+        else {
+            UUID companyId = UUID.fromString(authHandler.getAuthenticatedCompanyId());
+            logger.info("Company ID: {}", companyId);
+    
+            List<Restaurant> restaurants = restaurantService.getRestaurantsByCompanyId(companyId);
+            if (restaurants.isEmpty()) {
+                logger.error("No restaurants found");
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            }
+    
+            logger.info("Restaurants found");
+            return new ResponseEntity<>(restaurants, HttpStatus.OK);
+        }
     }
 }
