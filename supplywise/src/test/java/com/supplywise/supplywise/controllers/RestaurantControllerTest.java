@@ -348,6 +348,77 @@ class RestaurantControllerTest {
         
         verify(restaurantService, times(1)).getRestaurantById(any(UUID.class));
     }
+
+    @Test
+    void testUpdateInventorySchedule_Success() throws Exception {
+        UUID restaurantId = UUID.randomUUID();
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(restaurantId);
+        restaurant.setName("Test Restaurant");
+        restaurant.setPeriodicity(InventoryPeriodicity.WEEKLY);
+
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.of(restaurant));
+
+        mockMvc.perform(put("/api/restaurants/" + restaurantId + "/schedule")
+                .param("periodicity", "MONTHLY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.periodicity").value("MONTHLY"));
+
+        verify(restaurantService, times(1)).saveRestaurant(any(Restaurant.class));
+    }
+
+    @Test
+    void testUpdateInventorySchedule_CustomPeriodicity_Success() throws Exception {
+        UUID restaurantId = UUID.randomUUID();
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(restaurantId);
+        restaurant.setName("Test Restaurant");
+        restaurant.setPeriodicity(InventoryPeriodicity.WEEKLY);
+
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.of(restaurant));
+
+        mockMvc.perform(put("/api/restaurants/" + restaurantId + "/schedule")
+                .param("periodicity", "CUSTOM")
+                .param("customInventoryPeriodicity", "14"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.periodicity").value("CUSTOM"))
+                .andExpect(jsonPath("$.customInventoryPeriodicity").value(14));
+
+        verify(restaurantService, times(1)).saveRestaurant(any(Restaurant.class));
+    }
+
+    @Test
+    void testUpdateInventorySchedule_ResetCustomPeriodicity_Success() throws Exception {
+        UUID restaurantId = UUID.randomUUID();
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(restaurantId);
+        restaurant.setName("Test Restaurant");
+        restaurant.setPeriodicity(InventoryPeriodicity.CUSTOM);
+        restaurant.setCustomInventoryPeriodicity(14);
+
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.of(restaurant));
+
+        mockMvc.perform(put("/api/restaurants/" + restaurantId + "/schedule")
+                .param("periodicity", "WEEKLY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.periodicity").value("WEEKLY"))
+                .andExpect(jsonPath("$.customInventoryPeriodicity").isEmpty());
+
+        verify(restaurantService, times(1)).saveRestaurant(any(Restaurant.class));
+    }
+
+    @Test
+    void testUpdateInventorySchedule_NotFound() throws Exception {
+        UUID restaurantId = UUID.randomUUID();
+
+        when(restaurantService.getRestaurantById(restaurantId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/api/restaurants/" + restaurantId + "/schedule")
+                .param("periodicity", "WEEKLY"))
+                .andExpect(status().isNotFound());
+
+        verify(restaurantService, never()).saveRestaurant(any(Restaurant.class));
+    }
     
     @Test
     void testGetRestaurants_Manager_NotFound() throws Exception {
