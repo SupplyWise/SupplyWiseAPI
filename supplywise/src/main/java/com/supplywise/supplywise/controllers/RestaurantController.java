@@ -2,6 +2,7 @@ package com.supplywise.supplywise.controllers;
 
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.model.Company;
+import com.supplywise.supplywise.model.InventoryPeriodicity;
 import com.supplywise.supplywise.services.RestaurantService;
 import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.CompanyService;
@@ -21,7 +22,9 @@ import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,20 +47,19 @@ public class RestaurantController {
         this.authHandler = authHandler;
     }
 
-    @Operation(summary = "Create a new restaurant", description = "Create a new restaurant for a company")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Restaurant created successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid restaurant data")
-    })
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
     @PostMapping
-    public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant) {
+    public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant,
+                                                    @RequestParam(required = false) InventoryPeriodicity periodicity) {
         logger.info("Attempting to create a new restaurant");
 
         Company company = restaurant.getCompany();
         if (company == null || !companyService.companyExists(company.getId())) {
             logger.error("Invalid or missing company");
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        if (periodicity != null) {
+            restaurant.setPeriodicity(periodicity);
         }
 
         Restaurant savedRestaurant = restaurantService.saveRestaurant(restaurant);
@@ -168,4 +170,25 @@ public class RestaurantController {
         logger.info("Restaurants found");
         return new ResponseEntity<>(restaurants, HttpStatus.OK);
     }
+
+    @Operation(summary = "Get inventory schedule for a restaurant", description = "Retrieve the inventory periodicity for a specific restaurant")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Inventory periodicity retrieved successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class))),
+        @ApiResponse(responseCode = "404", description = "Restaurant not found")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
+    @GetMapping("/{id}/schedule")
+    public ResponseEntity<Map<String, String>> getInventorySchedule(@PathVariable UUID id) {
+        Optional<Restaurant> restaurantOptional = restaurantService.getRestaurantById(id);
+
+        if (restaurantOptional.isPresent()) {
+            InventoryPeriodicity periodicity = restaurantOptional.get().getPeriodicity();
+            Map<String, String> response = new HashMap<>();
+            response.put("periodicity", periodicity != null ? periodicity.name() : "Not Set");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
 }

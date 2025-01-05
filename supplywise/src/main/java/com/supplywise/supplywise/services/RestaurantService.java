@@ -1,5 +1,6 @@
 package com.supplywise.supplywise.services;
 
+import com.supplywise.supplywise.model.InventoryPeriodicity;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.repositories.RestaurantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +25,10 @@ public class RestaurantService {
         return restaurantRepository.findById(id);
     }
 
-    // Create a new restaurant
     public Restaurant saveRestaurant(Restaurant restaurant) {
+        if (restaurant.getPeriodicity() == null) {
+            restaurant.setPeriodicity(InventoryPeriodicity.CUSTOM); // Default to CUSTOM if not provided
+        }
         return restaurantRepository.save(restaurant);
     }
 
