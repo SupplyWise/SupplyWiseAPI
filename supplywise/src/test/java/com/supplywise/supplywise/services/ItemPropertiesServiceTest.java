@@ -81,6 +81,24 @@ class ItemPropertiesServiceTest {
     }
 
     @Test
+    void testCreateItemProperties_InvalidItem_ShouldThrowException() {
+        // Mock ItemProperties data
+        ItemProperties itemProperties = new ItemProperties();
+        itemProperties.setItem(new Item());
+        itemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
+        itemProperties.setQuantity(100);
+
+        // Mock the repository to return null when the item is not found
+        when(itemRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        // Execute the method
+        assertThrows(IllegalArgumentException.class, () -> itemPropertiesService.createItemProperties(itemProperties));
+
+        // Verify that the save method was not called
+        verify(itemPropertiesRepository, never()).save(any(ItemProperties.class));
+    }
+
+    @Test
     void testGetItemPropertiesById_ItemFound_ShouldReturnItemProperties() {
         // Generate a random UUID for the itemProperties
         UUID itemPropertiesId = UUID.randomUUID();
@@ -205,7 +223,7 @@ class ItemPropertiesServiceTest {
     }
 
     @Test
-    void testUpdateItemProperties_InvalidItem_ShouldReturnNull() {
+    void testUpdateItemProperties_NoItem_ShouldReturnNull() {
         // Generate a random UUID for the itemProperties
         UUID itemPropertiesId = UUID.randomUUID();
         
@@ -220,6 +238,37 @@ class ItemPropertiesServiceTest {
 
         // Verify that the findById method was called
         verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
+    }
+
+    @Test
+    void testUpdateItemProperties_InvalidItem_ShouldRaiseException() {
+        // Mock dependencies
+        Item item = new Item();
+        item.setId(UUID.randomUUID());
+        
+        // Setup existing and updated properties
+        UUID itemPropertiesId = UUID.randomUUID();
+        ItemProperties existingItemProperties = new ItemProperties();
+        existingItemProperties.setId(itemPropertiesId);
+        existingItemProperties.setItem(item);
+        existingItemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
+        existingItemProperties.setQuantity(100);
+
+        ItemProperties updatedItemProperties = new ItemProperties();
+        updatedItemProperties.setItem(new Item());
+        updatedItemProperties.setExpirationDate(LocalDate.of(2026, 12, 31));
+        updatedItemProperties.setQuantity(200);
+
+        // Mock repository responses
+        when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.of(existingItemProperties));
+        when(itemRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        // Execute
+        assertThrows(IllegalArgumentException.class, () -> itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties));
+
+        // Verify
+        verify(itemPropertiesRepository).findById(itemPropertiesId);
+        verify(itemPropertiesRepository, never()).save(any(ItemProperties.class));
     }
 
     @Test
