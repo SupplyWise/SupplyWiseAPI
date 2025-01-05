@@ -156,8 +156,8 @@ public class RestaurantController {
     public ResponseEntity<List<Restaurant>> getRestaurants() {
         logger.info("Attempting to get restaurants for the authenticated user");
 
-        // Check if the authenticated user is an admin or franchise owner
-        if (authHandler.hasRole("ROLE_ADMIN") || authHandler.hasRole("ROLE_FRANCHISE_OWNER")) {
+        // Check if the authenticated user is a manager_master or manager
+        if (authHandler.hasRole("ROLE_MANAGER_MASTER") || authHandler.hasRole("ROLE_MANAGER")) {
             UUID restaurantId = UUID.fromString(authHandler.getAuthenticatedRestaurantId());
             Optional<Restaurant> restaurant = restaurantService.getRestaurantById(restaurantId);
 
