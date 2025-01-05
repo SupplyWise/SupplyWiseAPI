@@ -88,6 +88,12 @@ public class ItemPropertiesController {
         return ResponseEntity.ok(itemProperties);
     }
 
+    @Operation(summary = "Update item properties by ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Item properties updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid item properties fields"),
+            @ApiResponse(responseCode = "404", description = "Item properties not found")
+    })
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER')")
     public ResponseEntity<Object> updateItemProperties(

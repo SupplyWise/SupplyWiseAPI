@@ -1,9 +1,14 @@
 package com.supplywise.supplywise.services;
 
+import com.supplywise.supplywise.model.Inventory;
 import com.supplywise.supplywise.model.Item;
 import com.supplywise.supplywise.repositories.ItemRepository;
+import com.supplywise.supplywise.repositories.NotificationRepository;
 import com.supplywise.supplywise.model.ItemProperties;
+import com.supplywise.supplywise.model.Restaurant;
+import com.supplywise.supplywise.repositories.InventoryRepository;
 import com.supplywise.supplywise.repositories.ItemPropertiesRepository;
+import com.supplywise.supplywise.model.Notification;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +23,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class ItemPropertiesServiceTest {
@@ -30,6 +36,15 @@ class ItemPropertiesServiceTest {
 
     @InjectMocks
     private ItemPropertiesService itemPropertiesService;
+
+    @Mock
+    private InventoryRepository inventoryRepository;
+
+    @Mock
+    private NotificationRepository notificationRepository;
+
+    @Mock 
+    private NotificationService notificationService;
 
     @BeforeEach
     void setUp() {
@@ -64,6 +79,24 @@ class ItemPropertiesServiceTest {
         assertEquals(item, createdItemProperties.getItem());
         assertEquals(LocalDate.of(2025, 12, 31), createdItemProperties.getExpirationDate());
         assertEquals(100, createdItemProperties.getQuantity());
+    }
+
+    @Test
+    void testCreateItemProperties_InvalidItem_ShouldThrowException() {
+        // Mock ItemProperties data
+        ItemProperties itemProperties = new ItemProperties();
+        itemProperties.setItem(new Item());
+        itemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
+        itemProperties.setQuantity(100);
+
+        // Mock the repository to return null when the item is not found
+        when(itemRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        // Execute the method
+        assertThrows(IllegalArgumentException.class, () -> itemPropertiesService.createItemProperties(itemProperties));
+
+        // Verify that the save method was not called
+        verify(itemPropertiesRepository, never()).save(any(ItemProperties.class));
     }
 
     @Test
@@ -144,11 +177,19 @@ class ItemPropertiesServiceTest {
 
     @Test
     void testUpdateItemProperties_ShouldUpdateAndReturnUpdatedItemProperties() {
-        // Mock Item
+        // Mock dependencies
         Item item = new Item();
         item.setId(UUID.randomUUID());
+        
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(UUID.randomUUID());
+        restaurant.setName("Test Restaurant");
+        
+        Inventory inventory = new Inventory();
+        inventory.setId(UUID.randomUUID());
+        inventory.setRestaurant(restaurant);
 
-        // Existing ItemProperties data
+        // Setup existing and updated properties
         UUID itemPropertiesId = UUID.randomUUID();
         ItemProperties existingItemProperties = new ItemProperties();
         existingItemProperties.setId(itemPropertiesId);
@@ -156,36 +197,34 @@ class ItemPropertiesServiceTest {
         existingItemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
         existingItemProperties.setQuantity(100);
 
-        // Updated ItemProperties data
         ItemProperties updatedItemProperties = new ItemProperties();
         updatedItemProperties.setItem(item);
         updatedItemProperties.setExpirationDate(LocalDate.of(2026, 12, 31));
         updatedItemProperties.setQuantity(200);
 
-        // Mock the repository to return the existing itemProperties when searched by ID
+        // Mock repository responses
         when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.of(existingItemProperties));
-
-        // Mock the repository to return the item
         when(itemRepository.findById(any(UUID.class))).thenReturn(Optional.of(item));
-
-        // Mock the repository to return the updated itemProperties when saved
         when(itemPropertiesRepository.save(any(ItemProperties.class))).thenReturn(updatedItemProperties);
+        when(inventoryRepository.findInventoryByItemPropertiesId(itemPropertiesId)).thenReturn(Optional.of(inventory));
+        when(notificationRepository.findByRestaurantIdAndMessageContaining(any(UUID.class), anyString()))
+            .thenReturn(Optional.empty());
 
-        // Execute the method
-        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties); // Assuming user can edit min stock
+        // Execute
+        ItemProperties result = itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties);
 
-        // Verify that the itemProperties is updated and saved
-        verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
-        verify(itemPropertiesRepository, times(1)).save(existingItemProperties);
+        // Verify
+        verify(itemPropertiesRepository).findById(itemPropertiesId);
+        verify(itemPropertiesRepository).save(existingItemProperties);
+        verify(inventoryRepository).findInventoryByItemPropertiesId(itemPropertiesId);
 
-        // Check if the itemProperties returned matches the updated data
         assertEquals(item, result.getItem());
         assertEquals(LocalDate.of(2026, 12, 31), result.getExpirationDate());
         assertEquals(200, result.getQuantity());
     }
 
     @Test
-    void testUpdateItemProperties_InvalidItem_ShouldReturnNull() {
+    void testUpdateItemProperties_NoItem_ShouldReturnNull() {
         // Generate a random UUID for the itemProperties
         UUID itemPropertiesId = UUID.randomUUID();
         
@@ -200,6 +239,37 @@ class ItemPropertiesServiceTest {
 
         // Verify that the findById method was called
         verify(itemPropertiesRepository, times(1)).findById(itemPropertiesId);
+    }
+
+    @Test
+    void testUpdateItemProperties_InvalidItem_ShouldRaiseException() {
+        // Mock dependencies
+        Item item = new Item();
+        item.setId(UUID.randomUUID());
+        
+        // Setup existing and updated properties
+        UUID itemPropertiesId = UUID.randomUUID();
+        ItemProperties existingItemProperties = new ItemProperties();
+        existingItemProperties.setId(itemPropertiesId);
+        existingItemProperties.setItem(item);
+        existingItemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
+        existingItemProperties.setQuantity(100);
+
+        ItemProperties updatedItemProperties = new ItemProperties();
+        updatedItemProperties.setItem(new Item());
+        updatedItemProperties.setExpirationDate(LocalDate.of(2026, 12, 31));
+        updatedItemProperties.setQuantity(200);
+
+        // Mock repository responses
+        when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.of(existingItemProperties));
+        when(itemRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        // Execute
+        assertThrows(IllegalArgumentException.class, () -> itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties));
+
+        // Verify
+        verify(itemPropertiesRepository).findById(itemPropertiesId);
+        verify(itemPropertiesRepository, never()).save(any(ItemProperties.class));
     }
 
     @Test
@@ -265,4 +335,69 @@ class ItemPropertiesServiceTest {
         verify(itemPropertiesRepository, never()).findById(any());
         verify(itemPropertiesRepository, never()).save(any());
     }
+
+    @Test
+    void testCreateItemProperties_NullItemProperties_ShouldThrowException() {
+        assertThrows(IllegalArgumentException.class, () -> itemPropertiesService.createItemProperties(null));
+    }
+
+    @Test
+    void testCreateItemProperties_InvalidQuantity_ShouldThrowException() {
+        Item item = new Item();
+        item.setId(UUID.randomUUID());
+
+        ItemProperties itemProperties = new ItemProperties();
+        itemProperties.setItem(item);
+        itemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
+        itemProperties.setQuantity(0);
+
+        when(itemRepository.findById(any(UUID.class))).thenReturn(Optional.of(item));
+
+        assertThrows(IllegalArgumentException.class, () -> itemPropertiesService.createItemProperties(itemProperties));
+    }
+
+    @Test
+    void testUpdateItemProperties_InvalidMinimumStockQuantity_ShouldThrowException() {
+        UUID itemPropertiesId = UUID.randomUUID();
+        ItemProperties existingItemProperties = new ItemProperties();
+        existingItemProperties.setId(itemPropertiesId);
+        existingItemProperties.setItem(new Item());
+        existingItemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
+        existingItemProperties.setQuantity(100);
+
+        ItemProperties updatedItemProperties = new ItemProperties();
+        updatedItemProperties.setMinimumStockQuantity(-1);
+
+        when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.of(existingItemProperties));
+
+        assertThrows(IllegalArgumentException.class, () -> itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties));
+    }
+
+    @Test
+    void testHandleStockNotifications_ExistingNotificationUnread_ShouldNotCreateNewNotification() {
+        UUID itemPropertiesId = UUID.randomUUID();
+        ItemProperties itemProperties = new ItemProperties();
+        itemProperties.setId(itemPropertiesId);
+        itemProperties.setItem(new Item());
+        itemProperties.setQuantity(5);
+        itemProperties.setMinimumStockQuantity(10);
+
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(UUID.randomUUID());
+        restaurant.setName("Test Restaurant");
+
+        Inventory inventory = new Inventory();
+        inventory.setId(UUID.randomUUID());
+        inventory.setRestaurant(restaurant);
+
+        Notification notification = new Notification(restaurant, "Test message");
+
+        when(inventoryRepository.findInventoryByItemPropertiesId(itemPropertiesId)).thenReturn(Optional.of(inventory));
+        when(notificationRepository.findByRestaurantIdAndMessageContaining(any(UUID.class), anyString())).thenReturn(Optional.of(notification));
+
+        itemPropertiesService.updateItemProperties(itemPropertiesId, itemProperties);
+
+        verify(notificationService, never()).createNotification(any(Notification.class));
+    }
+
 }
