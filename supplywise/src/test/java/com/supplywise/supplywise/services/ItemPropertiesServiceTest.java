@@ -8,6 +8,7 @@ import com.supplywise.supplywise.model.ItemProperties;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.repositories.InventoryRepository;
 import com.supplywise.supplywise.repositories.ItemPropertiesRepository;
+import com.supplywise.supplywise.model.Notification;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -334,4 +335,69 @@ class ItemPropertiesServiceTest {
         verify(itemPropertiesRepository, never()).findById(any());
         verify(itemPropertiesRepository, never()).save(any());
     }
+
+    @Test
+    void testCreateItemProperties_NullItemProperties_ShouldThrowException() {
+        assertThrows(IllegalArgumentException.class, () -> itemPropertiesService.createItemProperties(null));
+    }
+
+    @Test
+    void testCreateItemProperties_InvalidQuantity_ShouldThrowException() {
+        Item item = new Item();
+        item.setId(UUID.randomUUID());
+
+        ItemProperties itemProperties = new ItemProperties();
+        itemProperties.setItem(item);
+        itemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
+        itemProperties.setQuantity(0);
+
+        when(itemRepository.findById(any(UUID.class))).thenReturn(Optional.of(item));
+
+        assertThrows(IllegalArgumentException.class, () -> itemPropertiesService.createItemProperties(itemProperties));
+    }
+
+    @Test
+    void testUpdateItemProperties_InvalidMinimumStockQuantity_ShouldThrowException() {
+        UUID itemPropertiesId = UUID.randomUUID();
+        ItemProperties existingItemProperties = new ItemProperties();
+        existingItemProperties.setId(itemPropertiesId);
+        existingItemProperties.setItem(new Item());
+        existingItemProperties.setExpirationDate(LocalDate.of(2025, 12, 31));
+        existingItemProperties.setQuantity(100);
+
+        ItemProperties updatedItemProperties = new ItemProperties();
+        updatedItemProperties.setMinimumStockQuantity(-1);
+
+        when(itemPropertiesRepository.findById(itemPropertiesId)).thenReturn(Optional.of(existingItemProperties));
+
+        assertThrows(IllegalArgumentException.class, () -> itemPropertiesService.updateItemProperties(itemPropertiesId, updatedItemProperties));
+    }
+
+    @Test
+    void testHandleStockNotifications_ExistingNotificationUnread_ShouldNotCreateNewNotification() {
+        UUID itemPropertiesId = UUID.randomUUID();
+        ItemProperties itemProperties = new ItemProperties();
+        itemProperties.setId(itemPropertiesId);
+        itemProperties.setItem(new Item());
+        itemProperties.setQuantity(5);
+        itemProperties.setMinimumStockQuantity(10);
+
+        Restaurant restaurant = new Restaurant();
+        restaurant.setId(UUID.randomUUID());
+        restaurant.setName("Test Restaurant");
+
+        Inventory inventory = new Inventory();
+        inventory.setId(UUID.randomUUID());
+        inventory.setRestaurant(restaurant);
+
+        Notification notification = new Notification(restaurant, "Test message");
+
+        when(inventoryRepository.findInventoryByItemPropertiesId(itemPropertiesId)).thenReturn(Optional.of(inventory));
+        when(notificationRepository.findByRestaurantIdAndMessageContaining(any(UUID.class), anyString())).thenReturn(Optional.of(notification));
+
+        itemPropertiesService.updateItemProperties(itemPropertiesId, itemProperties);
+
+        verify(notificationService, never()).createNotification(any(Notification.class));
+    }
+
 }
