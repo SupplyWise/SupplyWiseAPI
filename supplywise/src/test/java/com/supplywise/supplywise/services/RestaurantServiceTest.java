@@ -2,6 +2,7 @@ package com.supplywise.supplywise.services;
 
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.model.Company;
+import com.supplywise.supplywise.model.InventoryPeriodicity;
 import com.supplywise.supplywise.repositories.RestaurantRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -179,5 +180,71 @@ class RestaurantServiceTest {
 
         // Then
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testSaveRestaurant_WithPeriodicity_ShouldSaveRestaurant() {
+        // Given
+        Company company = new Company();
+        company.setId(UUID.randomUUID());
+        
+        Restaurant restaurant = new Restaurant("Test Restaurant", company);
+        restaurant.setPeriodicity(InventoryPeriodicity.WEEKLY);
+
+        // Mock the repository
+        when(restaurantRepository.save(any(Restaurant.class))).thenReturn(restaurant);
+
+        // When
+        Restaurant savedRestaurant = restaurantService.saveRestaurant(restaurant);
+
+        // Then
+        assertNotNull(savedRestaurant);
+        assertEquals("Test Restaurant", savedRestaurant.getName());
+        assertEquals(InventoryPeriodicity.WEEKLY, savedRestaurant.getPeriodicity());
+        verify(restaurantRepository, times(1)).save(restaurant);
+    }
+
+    @Test
+    void testSaveRestaurant_WithCustomPeriodicity_ShouldSaveRestaurant() {
+        // Given
+        Company company = new Company();
+        company.setId(UUID.randomUUID());
+        
+        Restaurant restaurant = new Restaurant("Test Restaurant", company);
+        restaurant.setPeriodicity(InventoryPeriodicity.CUSTOM);
+        restaurant.setCustomInventoryPeriodicity(14);
+
+        // Mock the repository
+        when(restaurantRepository.save(any(Restaurant.class))).thenReturn(restaurant);
+
+        // When
+        Restaurant savedRestaurant = restaurantService.saveRestaurant(restaurant);
+
+        // Then
+        assertNotNull(savedRestaurant);
+        assertEquals("Test Restaurant", savedRestaurant.getName());
+        assertEquals(InventoryPeriodicity.CUSTOM, savedRestaurant.getPeriodicity());
+        assertEquals(14, savedRestaurant.getCustomInventoryPeriodicity());
+        verify(restaurantRepository, times(1)).save(restaurant);
+    }
+
+    @Test
+    void testSaveRestaurant_WithNoPeriodicity_ShouldSetDefaultNull() {
+        // Given
+        Company company = new Company();
+        company.setId(UUID.randomUUID());
+        
+        Restaurant restaurant = new Restaurant("Test Restaurant", company);
+
+        // Mock the repository
+        when(restaurantRepository.save(any(Restaurant.class))).thenReturn(restaurant);
+
+        // When
+        Restaurant savedRestaurant = restaurantService.saveRestaurant(restaurant);
+
+        // Then
+        assertNotNull(savedRestaurant);
+        assertEquals(InventoryPeriodicity.NULL, savedRestaurant.getPeriodicity());
+        verify(restaurantRepository, times(1)).save(restaurant);
     }
 }
