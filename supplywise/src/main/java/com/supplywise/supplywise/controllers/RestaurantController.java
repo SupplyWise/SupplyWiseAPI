@@ -207,4 +207,38 @@ public class RestaurantController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @Operation(summary = "Update inventory schedule for a restaurant", description = "Update the inventory periodicity for a specific restaurant")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Inventory schedule updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Restaurant not found")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
+    @PutMapping("/{id}/schedule")
+    public ResponseEntity<Restaurant> updateInventorySchedule(
+            @PathVariable UUID id, 
+            @RequestParam(required = false) InventoryPeriodicity periodicity,
+            @RequestParam(required = false) Integer customInventoryPeriodicity) {
+        
+        Optional<Restaurant> restaurantOptional = restaurantService.getRestaurantById(id);
+        if (!restaurantOptional.isPresent()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        Restaurant restaurant = restaurantOptional.get();
+        
+        if (periodicity != null) {
+            restaurant.setPeriodicity(periodicity);
+        }
+
+        if (periodicity == InventoryPeriodicity.CUSTOM && customInventoryPeriodicity != null) {
+            restaurant.setCustomInventoryPeriodicity(customInventoryPeriodicity);
+        } else if (periodicity != InventoryPeriodicity.CUSTOM) {
+            restaurant.setCustomInventoryPeriodicity(null);  // Reset custom value if not CUSTOM
+        }
+
+        restaurantService.saveRestaurant(restaurant);
+        return new ResponseEntity<>(restaurant, HttpStatus.OK);
+    }
+
+
 }
