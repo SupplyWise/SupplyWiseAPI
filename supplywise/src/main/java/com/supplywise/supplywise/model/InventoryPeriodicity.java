@@ -5,5 +5,6 @@ public enum InventoryPeriodicity {
     WEEKLY,
     MONTHLY,
     YEARLY,
-    CUSTOM
+    CUSTOM,
+    NULL
 }

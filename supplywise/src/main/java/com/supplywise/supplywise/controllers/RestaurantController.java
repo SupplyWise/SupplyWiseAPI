@@ -47,9 +47,16 @@ public class RestaurantController {
         this.authHandler = authHandler;
     }
 
+    @Operation(summary = "Create a new restaurant", description = "Create a new restaurant for a company")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Restaurant created successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid restaurant data")
+    })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
     @PostMapping
-    public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant,
-                                                    @RequestParam(required = false) InventoryPeriodicity periodicity) {
+        public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant,
+                                                        @RequestParam(required = false) InventoryPeriodicity periodicity,
+                                                        @RequestParam(required = false) Integer customInventoryPeriodicity) {
         logger.info("Attempting to create a new restaurant");
 
         Company company = restaurant.getCompany();
@@ -60,6 +67,10 @@ public class RestaurantController {
 
         if (periodicity != null) {
             restaurant.setPeriodicity(periodicity);
+        }
+
+        if (periodicity == InventoryPeriodicity.CUSTOM && customInventoryPeriodicity != null) {
+            restaurant.setCustomInventoryPeriodicity(customInventoryPeriodicity);
         }
 
         Restaurant savedRestaurant = restaurantService.saveRestaurant(restaurant);
@@ -174,18 +185,23 @@ public class RestaurantController {
     @Operation(summary = "Get inventory schedule for a restaurant", description = "Retrieve the inventory periodicity for a specific restaurant")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Inventory periodicity retrieved successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Map.class))),
         @ApiResponse(responseCode = "404", description = "Restaurant not found")
     })
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER')")
     @GetMapping("/{id}/schedule")
-    public ResponseEntity<Map<String, String>> getInventorySchedule(@PathVariable UUID id) {
+    public ResponseEntity<Map<String, Object>> getInventorySchedule(@PathVariable UUID id) {
         Optional<Restaurant> restaurantOptional = restaurantService.getRestaurantById(id);
 
         if (restaurantOptional.isPresent()) {
-            InventoryPeriodicity periodicity = restaurantOptional.get().getPeriodicity();
-            Map<String, String> response = new HashMap<>();
+            Restaurant restaurant = restaurantOptional.get();
+            InventoryPeriodicity periodicity = restaurant.getPeriodicity();
+            Integer customInventoryPeriodicity = restaurant.getCustomInventoryPeriodicity();
+
+            Map<String, Object> response = new HashMap<>();
             response.put("periodicity", periodicity != null ? periodicity.name() : "Not Set");
+            response.put("customInventoryPeriodicity", customInventoryPeriodicity != null ? customInventoryPeriodicity : null);
+
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);

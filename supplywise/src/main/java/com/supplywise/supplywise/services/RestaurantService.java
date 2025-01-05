@@ -27,7 +27,7 @@ public class RestaurantService {
 
     public Restaurant saveRestaurant(Restaurant restaurant) {
         if (restaurant.getPeriodicity() == null) {
-            restaurant.setPeriodicity(InventoryPeriodicity.CUSTOM); // Default to CUSTOM if not provided
+            restaurant.setPeriodicity(InventoryPeriodicity.NULL); // Default to NULL if not provided
         }
         return restaurantRepository.save(restaurant);
     }
