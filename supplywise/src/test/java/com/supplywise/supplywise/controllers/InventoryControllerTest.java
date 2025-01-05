@@ -12,6 +12,7 @@ import com.supplywise.supplywise.services.AuthHandler;
 import com.supplywise.supplywise.services.InventoryService;
 import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.ItemService;
+import com.supplywise.supplywise.services.NotificationService;
 import com.supplywise.supplywise.services.RestaurantService;
 import com.supplywise.supplywise.config.JwtAuthenticationFilter;
 import com.supplywise.supplywise.config.SecurityConfiguration;
@@ -60,6 +61,9 @@ class InventoryControllerTest {
 
     @MockBean
     private ItemPropertiesService itemPropertiesService;
+
+    @MockBean
+    private NotificationService notificationService;
 
     @MockBean
     private AuthHandler authHandler;

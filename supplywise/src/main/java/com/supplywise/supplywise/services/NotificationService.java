@@ -46,14 +46,14 @@ public class NotificationService {
         // Check if the notification already exists by its text
         if (notification.isReminder()) {
             logger.info("Checking for existing reminders for restaurant ID: {}", notification.getRestaurant().getId());
-            List<Notification> existingNotifications = notificationRepository.findAllByRestaurantId(
-                    notification.getRestaurant().getId()
+            List<Notification> existingReminders = notificationRepository.findByRestaurantIdAndIsReminder(
+                    notification.getRestaurant().getId(), true
             );
 
-            for (Notification existingNotification : existingNotifications) {
-                if (existingNotification.getMessage().equals(notification.getMessage())) {
+            for (Notification reminder : existingReminders) {
+                if (reminder.getMessage().equals(notification.getMessage())) {
                     logger.info("Notification already exists: {}", notification.getMessage());
-                    return existingNotification;
+                    return reminder;
                 }
             }
         }
@@ -165,6 +165,16 @@ public class NotificationService {
             createNotification(notification); // Save and broadcast
         } else {
             logger.info("Closing date {} is not before the current time. No reminder created.", closingDate);
+        }
+    }
+
+    public void clearRemindersByRestaurant(UUID restaurantId) {
+        logger.info("Clearing reminders for restaurant ID: {}", restaurantId);
+        List<Notification> reminders = notificationRepository.findByRestaurantIdAndIsReminder(restaurantId, true);
+
+        for (Notification reminder : reminders) {
+            reminder.setResolved(true);
+            notificationRepository.save(reminder);
         }
     }
 }
