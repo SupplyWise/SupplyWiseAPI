@@ -316,6 +316,24 @@ class RestaurantControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.periodicity").value("CUSTOM"))
                 .andExpect(jsonPath("$.customInventoryPeriodicity").value(14));
+      
+        verify(restaurantService, times(1)).getRestaurantById(any(UUID.class));
+    }
+    
+    @Test
+    void testGetRestaurants_Manager_Success() throws Exception {
+        List<Restaurant> restaurants = new ArrayList<>();
+        Restaurant restaurant1 = new Restaurant();
+        restaurant1.setName("Restaurant 1");
+        restaurants.add(restaurant1);
+
+        when(restaurantService.getRestaurantById(any(UUID.class))).thenReturn(Optional.of(restaurant1));
+        when(authHandler.hasRole("ROLE_MANAGER")).thenReturn(true);
+        when(authHandler.getAuthenticatedRestaurantId()).thenReturn(UUID.randomUUID().toString());
+        
+        mockMvc.perform(get("/api/restaurants/company"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Restaurant 1"));
         
         verify(restaurantService, times(1)).getRestaurantById(any(UUID.class));
     }
@@ -326,6 +344,18 @@ class RestaurantControllerTest {
         when(restaurantService.getRestaurantById(any(UUID.class))).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/restaurants/" + restaurantId + "/schedule"))
+                .andExpect(status().isNotFound());
+        
+        verify(restaurantService, times(1)).getRestaurantById(any(UUID.class));
+    }
+    
+    @Test
+    void testGetRestaurants_Manager_NotFound() throws Exception {
+        when(restaurantService.getRestaurantById(any(UUID.class))).thenReturn(Optional.empty());
+        when(authHandler.hasRole("ROLE_MANAGER")).thenReturn(true);
+        when(authHandler.getAuthenticatedRestaurantId()).thenReturn(UUID.randomUUID().toString());
+
+        mockMvc.perform(get("/api/restaurants/company"))
                 .andExpect(status().isNotFound());
         
         verify(restaurantService, times(1)).getRestaurantById(any(UUID.class));
