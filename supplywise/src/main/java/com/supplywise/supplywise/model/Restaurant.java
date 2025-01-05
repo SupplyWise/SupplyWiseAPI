@@ -28,6 +28,13 @@ public class Restaurant {
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "inventory_periodicity")
+    private InventoryPeriodicity periodicity;
+
+    @Column(name = "custom_inventory_periodicity")
+    private Integer customInventoryPeriodicity; // Number of days for CUSTOM periodicity
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -35,6 +42,13 @@ public class Restaurant {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public Restaurant(String name, Company company, InventoryPeriodicity periodicity, Integer customInventoryPeriodicity) {
+        this.name = name;
+        this.company = company;
+        this.periodicity = periodicity;
+        this.customInventoryPeriodicity = customInventoryPeriodicity;
+    }
 
     public Restaurant(String name, Company company) {
         this.name = name;
