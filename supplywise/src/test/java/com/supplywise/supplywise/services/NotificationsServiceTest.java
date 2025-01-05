@@ -3,6 +3,7 @@ package com.supplywise.supplywise.services;
 import com.supplywise.supplywise.model.Notification;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.repositories.NotificationRepository;
+import com.supplywise.supplywise.repositories.RestaurantRepository;
 import com.supplywise.supplywise.websocket.NotificationWebSocketHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class NotificationServiceTest {
+
+    @Mock
+    private RestaurantRepository restaurantRepository;
 
     @Mock
     private NotificationRepository notificationRepository;
