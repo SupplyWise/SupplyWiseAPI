@@ -36,6 +36,11 @@ public class AuthHandler {
             .toList();
     }
 
+    public boolean hasRole(String role) {
+        // Check if user has a specific role
+        return getAuthenticatedUserRoles().contains(role);
+    }
+
     public String getAuthenticatedCompanyId() {
         // Extract companyId from custom authentication details
         CustomAuthenticationDetails details = getCustomAuthenticationDetails();

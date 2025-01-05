@@ -134,4 +134,32 @@ class AuthHandlerTest {
         verify(details).getUsername();
     }
 
+    @Test
+    void testHasRole() {
+        // Create and configure the security context
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+
+        // Create test authentication with explicit authority
+        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_MANAGER"));
+        TestingAuthenticationToken testAuth = new TestingAuthenticationToken(
+            "user", 
+            "password", 
+            authorities
+        );
+        testAuth.setAuthenticated(true);
+        
+        // Set the authentication in the context
+        context.setAuthentication(testAuth);
+        SecurityContextHolder.setContext(context);
+        
+        try {
+            // Call the method under test
+            boolean hasRole = authHandler.hasRole("ROLE_MANAGER");
+            
+            // Assert the user has the role
+            assertTrue(hasRole);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
 }
