@@ -3,7 +3,10 @@ package com.supplywise.supplywise.services;
 import com.supplywise.supplywise.model.Notification;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.repositories.NotificationRepository;
+import com.supplywise.supplywise.repositories.RestaurantRepository;
 import com.supplywise.supplywise.websocket.NotificationWebSocketHandler;
+import com.supplywise.supplywise.repositories.InventoryRepository;
+import com.supplywise.supplywise.model.Inventory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -15,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -22,10 +26,16 @@ import static org.mockito.Mockito.*;
 class NotificationServiceTest {
 
     @Mock
+    private RestaurantRepository restaurantRepository;
+
+    @Mock
     private NotificationRepository notificationRepository;
 
     @Mock
     private NotificationWebSocketHandler notificationWebSocketHandler;
+
+    @Mock
+    private InventoryRepository inventoryRepository;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -181,5 +191,57 @@ class NotificationServiceTest {
         notificationService.deleteNotification(notification);
 
         verify(notificationRepository).delete(notification);
+    }
+
+    @Test
+    void testCreateNotification_ExistingReminder_ShouldReturnExisting() {
+        notification.markAsReminder();
+        when(notificationRepository.findByRestaurantIdAndIsReminder(restaurantId, true))
+            .thenReturn(List.of(notification));
+
+        Notification result = notificationService.createNotification(notification);
+
+        assertNotNull(result);
+        assertEquals(notification.getId(), result.getId());
+        verify(notificationRepository, never()).save(any(Notification.class));
+    }
+
+    @Test
+    void testCheckForInventoryCount_WithOpenInventories_ShouldCreateReminder() {
+        Inventory inventory = new Inventory();
+        inventory.setExpectedClosingDate(LocalDateTime.now().minusDays(1));
+        when(restaurantRepository.findById(restaurantId)).thenReturn(Optional.of(restaurant));
+        when(inventoryRepository.findByRestaurant(restaurant)).thenReturn(List.of(inventory));
+
+        notificationService.checkForInventoryCount(restaurantId);
+
+        verify(notificationRepository, times(1)).save(any(Notification.class));
+    }
+
+    @Test
+    void testCheckForInventoryCount_NoOpenInventories_ShouldNotCreateReminder() {
+        Inventory inventory = new Inventory();
+        inventory.setExpectedClosingDate(LocalDateTime.now().plusDays(1));
+        when(restaurantRepository.findById(restaurantId)).thenReturn(Optional.of(restaurant));
+        when(inventoryRepository.findByRestaurant(restaurant)).thenReturn(List.of(inventory));
+
+        notificationService.checkForInventoryCount(restaurantId);
+
+        verify(notificationRepository, never()).save(any(Notification.class));
+    }
+
+    @Test
+    void testClearRemindersByRestaurant_ShouldResolveReminders() {
+        Notification reminder = new Notification();
+        reminder.setId(UUID.randomUUID());
+        reminder.setRestaurant(restaurant);
+        reminder.markAsReminder();
+        when(notificationRepository.findByRestaurantIdAndIsReminder(restaurantId, true))
+            .thenReturn(List.of(reminder));
+
+        notificationService.clearRemindersByRestaurant(restaurantId);
+
+        assertTrue(reminder.isResolved());
+        verify(notificationRepository, times(1)).save(reminder);
     }
 }

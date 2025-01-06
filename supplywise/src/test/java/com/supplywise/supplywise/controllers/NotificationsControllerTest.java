@@ -1,6 +1,5 @@
 package com.supplywise.supplywise.controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplywise.supplywise.model.Notification;
 import com.supplywise.supplywise.model.Restaurant;
 import com.supplywise.supplywise.services.NotificationService;
@@ -38,7 +37,6 @@ class NotificationControllerTest {
     @MockBean
     private AuthHandler authHandler;
 
-    private ObjectMapper objectMapper;
     private UUID restaurantId;
     private UUID notificationId;
     private Notification notification;
@@ -46,7 +44,6 @@ class NotificationControllerTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
         restaurantId = UUID.randomUUID();
         notificationId = UUID.randomUUID();
         

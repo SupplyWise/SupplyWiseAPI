@@ -31,6 +31,9 @@ public class Notification {
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;
 
+    @Column(name = "is_reminder", nullable = false)
+    private boolean isReminder = false;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -49,5 +52,9 @@ public class Notification {
 
     public void markUnread() {
         this.isRead = false;
+    }
+
+    public void markAsReminder() {
+        this.isReminder = true;
     }
 }
