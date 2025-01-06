@@ -274,7 +274,7 @@ class InventoryControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER_MASTER"})
     void testDeleteInventoryById_Success() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.of(new Inventory()));
@@ -286,7 +286,7 @@ class InventoryControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER"})
+    @WithMockUser(username = "cognito-sub-example", roles = {"MANAGER_MASTER"})
     void testDeleteInventoryById_NotFound() throws Exception {
         UUID inventoryId = UUID.randomUUID();
         when(inventoryService.getInventoryById(inventoryId)).thenReturn(Optional.empty());
