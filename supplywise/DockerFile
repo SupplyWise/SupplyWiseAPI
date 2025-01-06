@@ -1,9 +1,6 @@
-FROM maven:3.8.5-openjdk-17
-
-RUN curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-23.0.3.tgz -o docker.tgz && tar xzvf docker.tgz && mv docker/docker /usr/local/bin/docker
-
+# Production stage
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /supplywise
-COPY . .
-RUN mvn --fail-never clean compile
-
-CMD mvn spring-boot:run
+COPY target/supplywise-1.0.1.jar supplywise.jar
+EXPOSE 8080
+CMD ["java", "-jar", "supplywise.jar"]
