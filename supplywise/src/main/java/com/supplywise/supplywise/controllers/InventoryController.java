@@ -145,7 +145,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "200", description = "Itema retrieved successfully"),
             @ApiResponse(responseCode = "204", description = "No items found")
     })
-    
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @GetMapping("/{inventoryId}/items")
     public ResponseEntity<Page<ItemProperties>> getItemsByInventoryId(
             @PathVariable UUID inventoryId,
@@ -180,6 +180,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "200", description = "Inventory deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Inventory not found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteInventoryById(@PathVariable UUID id) {
         logger.info("Attempting to delete inventory by ID");
@@ -200,6 +201,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "404", description = "Inventory not found"),
             @ApiResponse(responseCode = "400", description = "Invalid inventory data")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @PutMapping("/{id}")
     public ResponseEntity<Inventory> updateInventory(@PathVariable UUID id, @RequestBody Inventory inventoryDetails) {
         logger.info("Attempting to update inventory with ID: {}", id);
@@ -232,6 +234,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "404", description = "Inventory not found"),
             @ApiResponse(responseCode = "400", description = "Invalid item data")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @PostMapping("/{inventoryId}/items")
     public ResponseEntity<Inventory> addItemToInventory(
             @PathVariable UUID inventoryId, @RequestBody AddItemToInventoryRequest itemRequest) {
@@ -267,6 +270,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "200", description = "Inventory is closed or not closed", content = @Content(mediaType = "application/json", schema = @Schema(type = "boolean"))),
             @ApiResponse(responseCode = "404", description = "Inventory not found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @GetMapping("/{id}/is-closed")
     public ResponseEntity<Boolean> isInventoryClosed(@PathVariable UUID id) {
         logger.info("Attempting to check if inventory with ID: {} is closed", id);
@@ -298,6 +302,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "200", description = "Inventory should be closed or not", content = @Content(mediaType = "application/json", schema = @Schema(type = "boolean"))),
             @ApiResponse(responseCode = "404", description = "Inventory not found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @GetMapping("/{id}/should-be-closed")
     public ResponseEntity<Boolean> isInventoryExpectedToClose(@PathVariable UUID id) {
         logger.info("Attempting to check if inventory with ID: {} should be closed", id);
@@ -330,6 +335,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "204", description = "No open inventories found"),
             @ApiResponse(responseCode = "404", description = "Restaurant not found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER_MASTER', 'ROLE_MANAGER')")
     @GetMapping("/restaurant/{restaurantId}/open")
     public ResponseEntity<List<Inventory>> getOpenInventoriesByRestaurant(@PathVariable UUID restaurantId) {
         logger.info("Attempting to get open inventories by restaurant ID");

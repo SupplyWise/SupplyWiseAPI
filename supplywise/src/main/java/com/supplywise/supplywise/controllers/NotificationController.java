@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ public class NotificationController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Notifications fetched successfully")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @GetMapping
     public List<Notification> getNotifications() {
         String restaurantId = authHandler.getAuthenticatedRestaurantId();
@@ -44,6 +46,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "200", description = "Notifications fetched successfully"),
             @ApiResponse(responseCode = "404", description = "Restaurant ID not found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @GetMapping("/{restaurantId}")
     public List<Notification> getNotificationsForRestaurant(@PathVariable UUID restaurantId) {
         logger.info("Fetching notifications for restaurant with ID: {}", restaurantId);
@@ -55,6 +58,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "204", description = "Notification resolved successfully"),
             @ApiResponse(responseCode = "404", description = "Notification ID not found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @PostMapping("/{notificationId}/resolve")
     public void resolveNotification(@PathVariable UUID notificationId) {
         notificationService.resolveNotification(notificationId);
@@ -65,6 +69,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "204", description = "Notification marked as read successfully"),
             @ApiResponse(responseCode = "404", description = "Notification ID not found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @PostMapping("/{notificationId}/read")
     public void readNotification(@PathVariable UUID notificationId) {
         notificationService.readNotification(notificationId);
@@ -75,6 +80,7 @@ public class NotificationController {
             @ApiResponse(responseCode = "204", description = "Notification marked as unread successfully"),
             @ApiResponse(responseCode = "404", description = "Notification ID not found")
     })
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FRANCHISE_OWNER', 'ROLE_MANAGER', 'ROLE_MANAGER_MASTER')")
     @PostMapping("/{notificationId}/unread")
     public void unreadNotification(@PathVariable UUID notificationId) {
         notificationService.unreadNotification(notificationId);

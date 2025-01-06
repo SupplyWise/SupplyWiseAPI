@@ -17,12 +17,17 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.List;
-import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfiguration {
+
+    private static final String ADMIN = "ADMIN";
+    private static final String FRANCHISE_OWNER = "FRANCHISE_OWNER";
+    private static final String MANAGER_MASTER = "MANAGER_MASTER";
+    private static final String MANAGER = "MANAGER";
+    private static final String DISASSOCIATED = "DISASSOCIATED";
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -36,14 +41,16 @@ public class SecurityConfiguration {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**").permitAll() //Allow access to Swagger UI
-                .requestMatchers("/api/auth/**").permitAll() // Expose public part of the API
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/user/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER", "DISASSOCIATED")
-                .requestMatchers("/api/company/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER", "DISASSOCIATED")
-                .requestMatchers(HttpMethod.POST, "/api/company").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "DISASSOCIATED") // Allow creating a company for disassociated users
-                .requestMatchers("/api/company/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER") // Restrict other company-related endpoints
-                .requestMatchers("/api/item-properties/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER")
-                .requestMatchers("/api/item/**").hasAnyRole("ADMIN", "FRANCHISE_OWNER", "MANAGER_MASTER", "MANAGER")
+                .requestMatchers("/api/auth/**", "/api/health").permitAll() // Expose public part of the API
+                .requestMatchers("/api/admin/**").hasRole(ADMIN)
+                .requestMatchers("/api/company/**").hasAnyRole(ADMIN, FRANCHISE_OWNER, MANAGER_MASTER, MANAGER, DISASSOCIATED)
+                .requestMatchers(HttpMethod.POST, "/api/company").hasAnyRole(ADMIN, FRANCHISE_OWNER, DISASSOCIATED) // Allow creating a company for disassociated users
+                .requestMatchers("/api/company/**").hasAnyRole(ADMIN, FRANCHISE_OWNER) // Restrict other company-related endpoints
+                .requestMatchers("/api/inventories/**").hasAnyRole(ADMIN, FRANCHISE_OWNER, MANAGER_MASTER, MANAGER)
+                .requestMatchers("/api/item/**").hasAnyRole(ADMIN, FRANCHISE_OWNER, MANAGER_MASTER, MANAGER)
+                .requestMatchers("/api/item-properties/**").hasAnyRole(ADMIN, FRANCHISE_OWNER, MANAGER_MASTER, MANAGER)
+                .requestMatchers("/api/notification/**").hasAnyRole(ADMIN, FRANCHISE_OWNER, MANAGER_MASTER, MANAGER)
+                .requestMatchers("/api/restaurants/**").hasAnyRole(ADMIN, FRANCHISE_OWNER, MANAGER_MASTER, MANAGER)
                 .anyRequest().authenticated()
             )
             .exceptionHandling(handler -> handler
@@ -61,12 +68,11 @@ public class SecurityConfiguration {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(Collections.singletonList("*")); //TODO this should be testing only, RESTRICT LATER
+        configuration.addAllowedOriginPattern("*");
         configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE"));
-        configuration.setAllowedHeaders(List.of("Authorization","Content-Type"));
+        configuration.setAllowedHeaders(List.of("Authorization","Content-Type", "X-Requested-With", "Accept", "Access-Control-Allow-Origin"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-
         source.registerCorsConfiguration("/**",configuration);
 
         return source;
