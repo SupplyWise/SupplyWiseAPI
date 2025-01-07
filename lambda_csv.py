@@ -43,10 +43,10 @@ def lambda_handler(event, context):
             header = next(reader)
             
             for row in reader:
-                item_name, barcode, category, expiration_date, quantity, minimum_stock, restaurant_id, inventory_id = row
+                item_name, barcode, category, expiration_date, quantity, minimum_stock, inventory_id = row
                 
                 # Ensure required fields are filled
-                if not all([item_name, category, expiration_date, quantity, minimum_stock, restaurant_id, inventory_id]):
+                if not all([item_name, category, expiration_date, quantity, minimum_stock, inventory_id]):
                     logger.warning(f"Skipping row with missing required values: {row}")
                     continue
                 
@@ -92,9 +92,9 @@ def lambda_handler(event, context):
                 
                 # Create item_properties linked to the inventory
                 cursor.execute("""
-                    INSERT INTO item_properties (item_id, expiration_date, quantity, minimum_stock_quantity, restaurant_id, inventory_id)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (item_id, expiration_date, quantity, minimum_stock, restaurant_id, inventory_id))
+                    INSERT INTO item_properties (item_id, expiration_date, quantity, minimum_stock_quantity, inventory_id)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (item_id, expiration_date, quantity, minimum_stock, inventory_id))
                 
         conn.commit()
         cursor.close()
