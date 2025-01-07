@@ -11,6 +11,7 @@ import com.supplywise.supplywise.websocket.NotificationWebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import java.time.format.DateTimeFormatter;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -144,7 +145,6 @@ public class NotificationService {
     }
 
     public void createInventoryCountReminder(UUID restaurantId, String restaurantName, LocalDateTime closingDate) {
-        //In testing revert this condition to avoid waiting for the closing date
         if (closingDate.isBefore(LocalDateTime.now())) {
             logger.info("Creating inventory count reminder for restaurant ID: {}", restaurantId);
 
@@ -153,12 +153,14 @@ public class NotificationService {
                         logger.error("Restaurant with ID {} not found", restaurantId);
                         return new IllegalArgumentException("Restaurant not found");
                     });
-                
+
+            String formattedDate = closingDate.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"));
+
             String message = String.format(
                     "Reminder: It is time to perform the inventory count for %s. Scheduled date: %s.",
-                        restaurantName,
-                        closingDate
-                    );
+                    restaurantName,
+                    formattedDate
+            );
 
             Notification notification = new Notification(restaurant, message);
             notification.markAsReminder(); // Mark as reminder to prevent multiple reminders for the same inventory
