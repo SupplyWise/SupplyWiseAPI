@@ -31,6 +31,6 @@ public class HealthCheckController {
     @GetMapping
     public ResponseEntity<HealthCheckResponse> healthCheck() {
         logger.info("Health check request received");
-        return ResponseEntity.ok(new HealthCheckResponse("IAP API is healthy"));
+        return ResponseEntity.ok(new HealthCheckResponse("SupplyWiseAPI is healthy"));
     }
 }

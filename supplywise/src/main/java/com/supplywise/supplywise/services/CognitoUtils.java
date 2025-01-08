@@ -31,7 +31,7 @@ public class CognitoUtils {
     
     public String promoteDisassociatedToOwner(Company company) {
         try {
-            String url = "https://zo9bnne4ec.execute-api.eu-west-1.amazonaws.com/dev/user-management/promote_to_owner";
+            String url = "https://mamajuc0i9.execute-api.eu-west-1.amazonaws.com/api/user-management/promote_to_owner";
             String requestBody = String.format("{\"company_id\": \"%s\"}", company.getId().toString());
             HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(url))
