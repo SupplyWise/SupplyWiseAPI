@@ -1,0 +1,6 @@
+# Production stage
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /supplywise
+COPY final_build/supplywise-1.0.1.jar supplywise.jar
+EXPOSE 8080
+CMD ["java", "-jar", "supplywise.jar"]
