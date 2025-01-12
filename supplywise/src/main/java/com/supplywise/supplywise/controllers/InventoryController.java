@@ -12,6 +12,7 @@ import com.supplywise.supplywise.services.ItemPropertiesService;
 import com.supplywise.supplywise.services.ItemService;
 import com.supplywise.supplywise.services.RestaurantService;
 import com.supplywise.supplywise.services.NotificationService;
+import com.supplywise.supplywise.services.ReportingService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -49,6 +50,7 @@ public class InventoryController {
     private final ItemService itemService;
     private final ItemPropertiesService itemPropertiesService;
     private final NotificationService notificationService;
+    private final ReportingService reportingService;
     private final AuthHandler authHandler;
     private final Logger logger = LoggerFactory.getLogger(InventoryController.class);
 
@@ -56,12 +58,13 @@ public class InventoryController {
     private static final String INVENTORY_NOT_FOUND = "Inventory not found";
 
     @Autowired
-    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService, ItemService itemService, ItemPropertiesService itemPropertiesService, NotificationService notificationService, AuthHandler authHandler) {
+    public InventoryController(InventoryService inventoryService, RestaurantService restaurantService, ItemService itemService, ItemPropertiesService itemPropertiesService, NotificationService notificationService, ReportingService reportingService, AuthHandler authHandler) {
         this.inventoryService = inventoryService;
         this.restaurantService = restaurantService;
         this.itemService = itemService;
         this.itemPropertiesService = itemPropertiesService;
         this.notificationService = notificationService;
+        this.reportingService = reportingService;
         this.authHandler = authHandler;   
     }
 
@@ -390,6 +393,15 @@ public class InventoryController {
         inventory.setClosingDate(closingDate);
         inventory.setClosedByUser(currentUser);
         Inventory updatedInventory = inventoryService.saveInventory(inventory);
+
+        //TODO generate a report here with a service
+        // Generate a report for the closed inventory
+        try {
+            logger.info("Generating report for closed inventory with ID: {}", id);
+            reportingService.generateReport(updatedInventory);
+        } catch (Exception e) {
+            logger.error("Failed to generate report for closed inventory", e);
+        }
 
         // Clear any reminders related to the inventory
         notificationService.clearRemindersByRestaurant(inventory.getRestaurant().getId());

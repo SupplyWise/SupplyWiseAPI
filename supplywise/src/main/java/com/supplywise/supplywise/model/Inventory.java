@@ -46,6 +46,9 @@ public class Inventory {
     @Column(name = "closed_by_user_id")
     private String closedByUser;
 
+    @Column(name = "report_url")
+    private String reportURL;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
